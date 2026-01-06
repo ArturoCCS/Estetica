@@ -1,223 +1,173 @@
-import { HeaderBack } from "@/src/components/HeaderBack";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import React, { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { Alert, ScrollView } from "react-native";
-import { z } from "zod";
+import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
+import { EditableImageUrlList } from "../../components/EditableImageUrlList";
+import { HeaderBack } from "../../components/HeaderBack";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { db } from "../../lib/firebase";
-import { theme } from "../../theme/theme";
 
-const schema = z
-  .object({
-    name: z.string().min(2, "Nombre requerido"),
-    description: z.string().optional(),
-    category: z.string().optional(),
-    durationMin: z.string().min(1, "Requerido"),
-    durationMax: z.string().min(1, "Requerido"),
-    price: z.string().optional(),
-    imageUrl: z.string().url("Debes poner una URL válida").optional().or(z.literal(""))
-  })
-  .superRefine((v, ctx) => {
-    const min = Number(v.durationMin);
-    const max = Number(v.durationMax);
-
-    if (Number.isNaN(min) || min < 10) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["durationMin"],
-        message: "Mínimo 10 min"
-      });
-    }
-    if (Number.isNaN(max) || max < 10) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["durationMax"],
-        message: "Mínimo 10 min"
-      });
-    }
-    if (!Number.isNaN(min) && !Number.isNaN(max) && max < min) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["durationMax"],
-        message: "La duración máxima debe ser mayor o igual a la mínima"
-      });
-    }
-
-    const priceTrim = (v.price ?? "").trim();
-    if (priceTrim.length > 0) {
-      const p = Number(priceTrim.replace(",", "."));
-      if (Number.isNaN(p) || p < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["price"],
-          message: "Precio inválido"
-        });
-      }
-    }
-  });
-
-type FormValues = z.infer<typeof schema>;
+function toNumberOrNull(v: string): number | null {
+  const t = (v ?? "").trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
 
 export function CreateServiceScreen() {
-  const [saving, setSaving] = useState(false);
   const navigation = useNavigation();
+  const isWeb = Platform.OS === "web";
+  const maxWidthStyle: ViewStyle | undefined = isWeb ? { maxWidth: 920, alignSelf: "center", width: "100%" } : undefined;
 
-  const { control, handleSubmit, formState, reset } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      description: "",
-      category: "general",
-      durationMin: "60",
-      durationMax: "90",
-      price: "",
-      imageUrl: ""
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [durationMin, setDurationMin] = useState("");
+  const [durationMax, setDurationMax] = useState("");
+  const [price, setPrice] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  async function handleCreate() {
+    if (saving) return;
+
+    const n = name.trim();
+    if (!n) return Alert.alert("Nombre requerido", "Escribe el título del servicio.");
+
+    // Validaciones numéricas (solo si hay texto)
+    const dMin = toNumberOrNull(durationMin);
+    const dMax = toNumberOrNull(durationMax);
+    const p = toNumberOrNull(price);
+
+    if (durationMin.trim() && dMin === null) return Alert.alert("Duración min inválida");
+    if (durationMax.trim() && dMax === null) return Alert.alert("Duración max inválida");
+    if (price.trim() && p === null) return Alert.alert("Precio inválido");
+
+    if (dMin !== null && dMax !== null && dMax < dMin) {
+      return Alert.alert("Duración inválida", "La duración máxima no puede ser menor a la mínima.");
     }
-  });
 
-  const onSubmit = async (values: FormValues) => {
+    setSaving(true);
     try {
-      setSaving(true);
-      const durationMin = Number(values.durationMin);
-      const durationMax = Number(values.durationMax);
-      const priceTrim = (values.price ?? "").trim();
-      const price = priceTrim.length === 0 ? null : Number(priceTrim.replace(",", "."));
+      const heroUrl = heroImageUrl.trim() || null;
       await addDoc(collection(db, "services"), {
-        name: values.name.trim(),
-        description: (values.description ?? "").trim(),
-        category: (values.category ?? "general").trim(),
-        durationMin,
-        durationMax,
-        price,
-        imageUrl: (values.imageUrl ?? "").trim(),
+        name: n,
+        description: description.trim() || null,
+        category: category.trim() || null,
+        durationMin: dMin,
+        durationMax: dMax,
+        price: p,
+        heroImageUrl: heroUrl,
+        imageUrl: heroUrl, // backward compatibility
+        galleryUrls: (galleryUrls ?? []).filter(Boolean),
         active: true,
-        photos: [],
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
-      Alert.alert("Listo", "Servicio creado");
-      reset({
-        name: "",
-        description: "",
-        category: "general",
-        durationMin: "60",
-        durationMax: "90",
-        price: "",
-        imageUrl: ""
-      });
+
+      Alert.alert("Listo", "Servicio creado exitosamente.");
+      navigation.goBack();
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "No se pudo crear");
+      Alert.alert("Error", e?.message ?? "No se pudo crear el servicio.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <HeaderBack />
-        <Card style={{ gap: theme.spacing.md }}>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Nombre"
-                value={value}
-                onChangeText={onChange}
-                error={formState.errors.name?.message}
-                placeholder="Ej. Uñas acrílicas"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Descripción"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="Qué incluye, recomendaciones, etc."
-                multiline
-                style={{ height: 90 }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="category"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Categoría"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="uñas, cabello, maquillaje…"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="durationMin"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Duración mínima (min)"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="number-pad"
-                error={formState.errors.durationMin?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="durationMax"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Duración máxima (min)"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="number-pad"
-                error={formState.errors.durationMax?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="price"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Precio (opcional)"
-                value={value ?? ""}
-                onChangeText={onChange}
-                keyboardType="decimal-pad"
-                placeholder="Ej. 350"
-                error={formState.errors.price?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="imageUrl"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="URL de foto de referencia (opcional)"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="https://ejemplo.com/foto.jpg"
-                error={formState.errors.imageUrl?.message}
-              />
-            )}
-          />
-          <Button title="Guardar" onPress={handleSubmit(onSubmit)} loading={saving} />
-        </Card>
-      </ScrollView>
+    <Screen scroll contentContainerStyle={[styles.page, maxWidthStyle]}>
+      <HeaderBack title="Crear servicio" />
+
+      <View style={styles.heroCard}>
+        <Text style={styles.heroTitle}>Nuevo servicio</Text>
+        <Text style={styles.heroSub}>
+          Completa la información del servicio. Precio/tiempo se pueden omitir si es por valoración.
+        </Text>
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <TextField label="Título" value={name} onChangeText={setName} placeholder="Ej. Limpieza facial" />
+        <TextField
+          label="Descripción"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Describe el servicio…"
+          multiline
+        />
+        <TextField
+          label="Categoría (opcional)"
+          value={category}
+          onChangeText={setCategory}
+          placeholder="Ej. Faciales"
+        />
+        <TextField
+          label="Imagen principal / Hero (URL)"
+          value={heroImageUrl}
+          onChangeText={setHeroImageUrl}
+          placeholder="https://..."
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <EditableImageUrlList value={galleryUrls} onChange={setGalleryUrls} label="Galería (URLs)" />
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <Text style={styles.sectionTitle}>Tiempo / Costo (opcionales)</Text>
+        <Text style={styles.hint}>Déjalos vacíos si depende de valoración.</Text>
+
+        <View style={styles.row2}>
+          <View style={{ flex: 1 }}>
+            <TextField
+              label="Duración min (min)"
+              value={durationMin}
+              onChangeText={setDurationMin}
+              keyboardType="numeric"
+              placeholder="60"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <TextField
+              label="Duración max (min)"
+              value={durationMax}
+              onChangeText={setDurationMax}
+              keyboardType="numeric"
+              placeholder="90"
+            />
+          </View>
+        </View>
+
+        <TextField label="Precio (MXN)" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="450" />
+      </View>
+
+      <Button title={saving ? "Creando..." : "Crear servicio"} onPress={handleCreate} disabled={saving} />
+      <Button title="Cancelar" variant="secondary" onPress={() => navigation.goBack()} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  page: { gap: 14, paddingBottom: 30 },
+  heroCard: {
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "#fff1f2",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  heroTitle: { fontSize: 18, fontWeight: "900", color: "#1f1f1f" },
+  heroSub: { marginTop: 6, color: "#6b7280", lineHeight: 18 },
+  card: { borderRadius: 22, padding: 14, gap: 12 },
+  soft: {
+    backgroundColor: "rgba(255,255,255,0.86)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  sectionTitle: { fontWeight: "900", color: "#1f1f1f" },
+  hint: { color: "#6b7280", fontSize: 12 },
+  row2: { flexDirection: "row", gap: 12 },
+});
