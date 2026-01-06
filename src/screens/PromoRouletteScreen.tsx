@@ -4,6 +4,7 @@ import LottieView from "lottie-react-native"; // Instala con npm/yarn
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button"; // Ajusta si usas otro botón
+import { HeaderBack } from "../components/HeaderBack";
 import WheelOfFortune from "../components/WheelOfFortune"; // Instala con npm/yarn
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
@@ -74,10 +75,16 @@ const handleFinish = (reward: string, winnerIndex: number) => {
     }
   };
 
-  if (!user) return <View style={styles.center}><Text>Inicia sesión para jugar la ruleta</Text></View>;
+  if (!user) return (
+    <View style={styles.center}>
+      <HeaderBack title="Ruleta de premios" />
+      <Text>Inicia sesión para jugar la ruleta</Text>
+    </View>
+  );
   if (alreadyClaimed) {
     return (
       <View style={styles.center}>
+        <HeaderBack title="Ruleta de premios" />
         <LottieView source={require("../../assets/lottie/denied.json")} autoPlay loop={false} style={{ width: 140, height: 140 }} />
         <Text style={styles.bigPrize}>¡Ya jugaste esta promoción!</Text>
         <Button title="Regresar" onPress={() => navigation.goBack()} />
@@ -87,6 +94,7 @@ const handleFinish = (reward: string, winnerIndex: number) => {
 
   return (
     <View style={styles.container}>
+      <HeaderBack title="Ruleta de premios" />
       <Text style={styles.title}>¡Gira la ruleta y gana tu premio!</Text>
      <WheelOfFortune
         options={{
