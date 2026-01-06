@@ -28,11 +28,10 @@ type AppointmentPayload = {
   serviceId: string;
   serviceName: string;
   price?: number;
-  startAt: string;
-  endAt: string;
+  requestedStartAt: string;
   dayKey: string;
   notes?: string | null;
-  status: "pending" | "confirmed" | "cancelled";
+  status: "requested";
   createdAt: any;
 };
 
@@ -95,16 +94,21 @@ export function BookServiceScreen() {
   }, [selectedDateStr, settings, selectedService, interval, minDate, tz, earliest]);
 
   async function hasConflict(dayKey: string, startAt: string, endAt: string): Promise<boolean> {
+    // Check against appointments that block time slots:
+    // - requested (admin might approve it)
+    // - awaiting_payment (time is reserved)
+    // - confirmed (time is booked)
     const q = query(
       collection(db, "appointments"),
       where("dayKey", "==", dayKey),
-      where("status", "in" as any, ["pending", "confirmed"])
+      where("status", "in" as any, ["requested", "awaiting_payment", "confirmed"])
     );
     const snap = await getDocs(q);
     const list = snap.docs.map((d) => d.data() as any);
     return list.some((a: any) => {
-      const aStart = new Date(a.startAt).getTime();
-      const aEnd = new Date(a.endAt).getTime();
+      // Use finalStartAt/finalEndAt if available, otherwise requestedStartAt
+      const aStart = a.finalStartAt ? new Date(a.finalStartAt).getTime() : new Date(a.requestedStartAt).getTime();
+      const aEnd = a.finalEndAt ? new Date(a.finalEndAt).getTime() : new Date(a.requestedStartAt).getTime() + 60 * 60 * 1000; // default 1hr
       const sStart = new Date(startAt).getTime();
       const sEnd = new Date(endAt).getTime();
       return sStart < aEnd && sEnd > aStart;
@@ -152,10 +156,9 @@ export function BookServiceScreen() {
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       price: selectedService.price,
-      startAt: startAtISO,
-      endAt: endAtISO,
+      requestedStartAt: startAtISO,
       dayKey,
-      status: "pending" as const,
+      status: "requested" as const,
       createdAt: serverTimestamp(),
     };
 
