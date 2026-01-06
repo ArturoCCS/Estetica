@@ -20,4 +20,5 @@ export type RootStackParamList = {
   BookService: { serviceId?: string };
   AdminAppointments: undefined;
   SettingsAdmin: undefined; // agregado
+  ServiceDetail: { serviceId: string };
 };

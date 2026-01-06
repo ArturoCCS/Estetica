@@ -22,7 +22,7 @@ export function AdminScreen() {
   if (!user || !isAdmin) return <Screen><Text style={{ color: theme.colors.muted }}>Redirigiendo…</Text></Screen>;
 
   return (
-    <Screen style={{ gap: theme.spacing.md }}>
+    <Screen scroll style={{ gap: theme.spacing.md }}>
       <Card style={styles.card}>
         <Text style={styles.title}>Panel Administrador</Text>
         <Text style={styles.info}>Sesión: {user.email}</Text>

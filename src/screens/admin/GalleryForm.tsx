@@ -5,6 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Alert, ScrollView } from "react-native";
 import { z } from "zod";
 
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -61,7 +62,7 @@ export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Button title="Volver al panel" onPress={() => navigation.goBack()} />
+        <HeaderBack />
         <Card style={{ gap: theme.spacing.md }}>
           <Controller
             control={control}

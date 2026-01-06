@@ -1,16 +1,23 @@
 export type UserRole = "admin" | "client";
 
+
 export type Service = {
   id: string;
   name: string;
   description?: string;
+
+  // Hero/landing
+  heroImageUrl?: string;     // imagen grande arriba
+  imageUrl?: string;         // compat con lo viejo (portada)
+  galleryUrls?: string[];    // ✅ galería propia por links
+
+  // opcionales
   price?: number;
   durationMin?: number;
   durationMax?: number;
-  imageUrl?: string;
-  rating?: number;
-  active?: boolean;
-}
+
+  active: boolean;
+};
 
 export type AppointmentStatus = 
   | "requested"       // User requested, waiting admin approval

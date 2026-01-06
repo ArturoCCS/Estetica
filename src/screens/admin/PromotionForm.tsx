@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
@@ -181,7 +182,7 @@ export function PromotionForm({ initialValues = {}, promoId, onDone }: Promotion
 
   return (
     <ScrollView contentContainerStyle={{ padding: theme.spacing.lg }}>
-      <Button title="Volver al panel" onPress={() => navigation.goBack()} />
+      <HeaderBack />
       <Card style={{ gap: theme.spacing.md, marginTop: 14 }}>
         <Controller
           control={control}

@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@react-navigation/native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
@@ -120,7 +121,7 @@ export function CreateServiceScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Button title="Volver al panel administrador" onPress={() => navigation.goBack()} />
+        <HeaderBack />
         <Card style={{ gap: theme.spacing.md }}>
           <Controller
             control={control}

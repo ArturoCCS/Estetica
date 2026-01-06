@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -17,6 +18,7 @@ type Service = {
   durationMax?: number;
   description?: string;
   imageUrl?: string;
+  galleryUrls?: string[];
 };
 
 export function ServicesAdminScreen() {
@@ -54,7 +56,7 @@ export function ServicesAdminScreen() {
       <ServiceForm
         initialValues={{
           name: editing.name,
-          description: editing.description,
+          description: editing.description ?? "",
           category: "",
           durationMin: `${editing.durationMin ?? ""}`,
           durationMax: `${editing.durationMax ?? ""}`,
@@ -69,7 +71,7 @@ export function ServicesAdminScreen() {
 
   return (
     <Screen>
-      <Button title="Volver al panel administrador" onPress={() => navigation.goBack()} />
+      <HeaderBack />
       {loading ? (
         <Text style={{ color: theme.colors.muted, marginTop: 36 }}>Cargando…</Text>
       ) : services.length === 0 ? (

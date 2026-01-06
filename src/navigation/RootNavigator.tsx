@@ -12,6 +12,7 @@ import { SettingsAdminScreen } from "../screens/admin/SettingsAdminScreen";
 import { BookServiceScreen } from "../screens/BookServiceScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { PromoRouletteScreen } from "../screens/PromoRouletteScreen";
+import { ServiceDetailScreen } from "../screens/ServiceDetailScreen";
 import { SignupScreen } from "../screens/SignupScreen";
 import { TabNavigator } from "./TabNavigator";
 import { RootStackParamList } from "./types";
@@ -41,6 +42,7 @@ export function RootNavigator() {
           <Stack.Screen name="PromoRoulette" component={PromoRouletteScreen} />
           <Stack.Screen name="BookService" component={BookServiceScreen} />
           <Stack.Screen name="AdminAppointments" component={AdminAppointmentsScreen} />
+          <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
           {/* Registra SettingsAdmin en el Root Stack */}
           <Stack.Screen name="SettingsAdmin" component={SettingsAdminScreen} />
         </>

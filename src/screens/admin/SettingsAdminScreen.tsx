@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useEffect } from "react";
@@ -118,6 +119,7 @@ export function SettingsAdminScreen() {
 
   return (
     <Screen>
+      <HeaderBack />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <Card style={{ gap: theme.spacing.md }}>
           <Controller control={control} name="timezone" render={({ field: { value, onChange } }) => (
@@ -157,7 +159,6 @@ export function SettingsAdminScreen() {
               Si está deshabilitado, las citas se confirman sin pago.
             </Text>
           </View>
-          )} />
         </Card>
 
         <Card style={{ gap: theme.spacing.sm, marginTop: theme.spacing.md }}>

@@ -2,10 +2,11 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native"; // ✅ ActivityIndicator
 import { Calendar } from "react-native-calendars";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { HeaderBack } from "../components/HeaderBack";
 import { TextField } from "../components/TextField";
 import { TimeSlotsGrid } from "../components/TimeSlotsGrid";
 import { db } from "../lib/firebase";
@@ -54,7 +55,12 @@ export function BookServiceScreen() {
   const [selectedTimeStr, setSelectedTimeStr] = useState("");
   const [notes, setNotes] = useState("");
 
-  const selectedService = useMemo(() => services.find((s) => s.id === selectedServiceId), [services, selectedServiceId]);
+  const [submitting, setSubmitting] = useState(false); // ✅ bloquea doble tap
+
+  const selectedService = useMemo(
+    () => services.find((s) => s.id === selectedServiceId),
+    [services, selectedServiceId]
+  );
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -69,7 +75,6 @@ export function BookServiceScreen() {
     fetchServices();
   }, [preselectedServiceId]);
 
-  // Rango de fechas permitido, respetando TZ
   const earliest = new Date(new Date().getTime() + minLeadMinutes * 60000);
   const minDate = tzDayString(earliest, tz);
   const maxDate = tzDayString(new Date(new Date().getTime() + maxDays * 24 * 3600000), tz);
@@ -94,10 +99,6 @@ export function BookServiceScreen() {
   }, [selectedDateStr, settings, selectedService, interval, minDate, tz, earliest]);
 
   async function hasConflict(dayKey: string, startAt: string, endAt: string): Promise<boolean> {
-    // Check against appointments that block time slots:
-    // - requested (admin might approve it)
-    // - awaiting_payment (time is reserved)
-    // - confirmed (time is booked)
     const q = query(
       collection(db, "appointments"),
       where("dayKey", "==", dayKey),
@@ -106,9 +107,11 @@ export function BookServiceScreen() {
     const snap = await getDocs(q);
     const list = snap.docs.map((d) => d.data() as any);
     return list.some((a: any) => {
-      // Use finalStartAt/finalEndAt if available, otherwise requestedStartAt
       const aStart = a.finalStartAt ? new Date(a.finalStartAt).getTime() : new Date(a.requestedStartAt).getTime();
-      const aEnd = a.finalEndAt ? new Date(a.finalEndAt).getTime() : new Date(a.requestedStartAt).getTime() + 60 * 60 * 1000; // default 1hr
+      const aEnd =
+        a.finalEndAt
+          ? new Date(a.finalEndAt).getTime()
+          : new Date(a.requestedStartAt).getTime() + 60 * 60 * 1000;
       const sStart = new Date(startAt).getTime();
       const sEnd = new Date(endAt).getTime();
       return sStart < aEnd && sEnd > aStart;
@@ -116,6 +119,8 @@ export function BookServiceScreen() {
   }
 
   async function handleConfirm() {
+    if (submitting) return; // ✅ evita doble tap
+
     if (!user) {
       Alert.alert("Inicia sesión", "Debes iniciar sesión para agendar.");
       navigation.navigate("Main", { screen: "Profile" });
@@ -130,69 +135,76 @@ export function BookServiceScreen() {
       return;
     }
 
-    const startAtISO = formatDateISO(selectedDateStr, selectedTimeStr);
-    const duration = selectedService.durationMin || 60;
-    const endAtISO = addMinutes(startAtISO, duration);
-    const dayKey = toDayKey(startAtISO);
-
-    // Validar contra fin del día (no exceder cierre)
-    const k = dayKeyFor(selectedDateStr, tz);
-    const bh = settings!.businessHours[k];
-    const endDayMinutes = parseInt(bh.end.slice(0, 2)) * 60 + parseInt(bh.end.slice(3, 5));
-    const startMinutes = parseInt(selectedTimeStr.slice(0, 2)) * 60 + parseInt(selectedTimeStr.slice(3, 5));
-    if (startMinutes + duration > endDayMinutes) {
-      Alert.alert("Fuera del horario", "La duración del servicio excede el horario de atención.");
-      return;
-    }
-
-    const conflict = await hasConflict(dayKey, startAtISO, endAtISO);
-    if (conflict) {
-      Alert.alert("Horario no disponible", "Selecciona otro horario.");
-      return;
-    }
-
-    const payloadBase = {
-      userId: user.uid,
-      serviceId: selectedService.id,
-      serviceName: selectedService.name,
-      price: selectedService.price,
-      requestedStartAt: startAtISO,
-      dayKey,
-      status: "requested" as const,
-      createdAt: serverTimestamp(),
-    };
-
-    // Evitar undefined en notes
-    const cleanNotes = notes.trim();
-    const payload: AppointmentPayload = cleanNotes.length ? { ...payloadBase, notes: cleanNotes } : { ...payloadBase };
-
-    await addDoc(collection(db, "appointments"), payload);
+    setSubmitting(true); // ✅ empieza loading
 
     try {
-      const adminTokens = await getAdminPushTokens();
-      console.log("Admin push tokens:", adminTokens);
-      if (adminTokens.length > 0) {
-        await sendExpoPush(
-          adminTokens.map((t) => ({
-            to: t,
-            title: "Nueva cita pendiente",
-            body: `${selectedService.name} • ${new Date(startAtISO).toLocaleString("es-MX")}`,
-            data: { type: "appointment_pending" },
-          }))
-        );
-      } else {
-        console.warn("No hay tokens de admin para notificar.");
-      }
-    } catch (e) {
-      console.error("Error enviando push a admins:", e);
-    }
+      const startAtISO = formatDateISO(selectedDateStr, selectedTimeStr);
+      const duration = selectedService.durationMin || 60;
+      const endAtISO = addMinutes(startAtISO, duration);
+      const dayKey = toDayKey(startAtISO);
 
-    Alert.alert("Reserva creada", "Tu cita quedó registrada.");
-    navigation.navigate("Main", { screen: "Bookings" });
+      const k = dayKeyFor(selectedDateStr, tz);
+      const bh = settings!.businessHours[k];
+      const endDayMinutes = parseInt(bh.end.slice(0, 2)) * 60 + parseInt(bh.end.slice(3, 5));
+      const startMinutes = parseInt(selectedTimeStr.slice(0, 2)) * 60 + parseInt(selectedTimeStr.slice(3, 5));
+      if (startMinutes + duration > endDayMinutes) {
+        Alert.alert("Fuera del horario", "La duración del servicio excede el horario de atención.");
+        return;
+      }
+
+      const conflict = await hasConflict(dayKey, startAtISO, endAtISO);
+      if (conflict) {
+        Alert.alert("Horario no disponible", "Selecciona otro horario.");
+        return;
+      }
+
+      const payloadBase = {
+        userId: user.uid,
+        serviceId: selectedService.id,
+        serviceName: selectedService.name,
+        price: selectedService.price,
+        requestedStartAt: startAtISO,
+        dayKey,
+        status: "requested" as const,
+        createdAt: serverTimestamp(),
+      };
+
+      const cleanNotes = notes.trim();
+      const payload: AppointmentPayload = cleanNotes.length ? { ...payloadBase, notes: cleanNotes } : { ...payloadBase };
+
+      await addDoc(collection(db, "appointments"), payload);
+
+      // Notificar admins (si falla, no rompemos la UX)
+      try {
+        const adminTokens = await getAdminPushTokens();
+        if (adminTokens.length > 0) {
+          await sendExpoPush(
+            adminTokens.map((t) => ({
+              to: t,
+              title: "Nueva cita pendiente",
+              body: `${selectedService.name} • ${new Date(startAtISO).toLocaleString("es-MX")}`,
+              data: { type: "appointment_pending" },
+            }))
+          );
+        }
+      } catch (e) {
+        console.error("Error enviando push a admins:", e);
+      }
+
+      Alert.alert("Reserva creada", "Tu cita quedó registrada.");
+      navigation.navigate("Main", { screen: "Bookings" });
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "No se pudo crear la reserva.");
+    } finally {
+      setSubmitting(false); // ✅ termina loading pase lo que pase
+    }
   }
+
+  const canSubmit = !!selectedService && !!selectedDateStr && !!selectedTimeStr && !submitting;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }} contentContainerStyle={{ padding: theme.spacing.lg }}>
+      <HeaderBack />
       <Card style={{ gap: theme.spacing.md }}>
         <Text style={{ fontWeight: "700", fontSize: 18 }}>Agendar servicio</Text>
 
@@ -219,6 +231,7 @@ export function BookServiceScreen() {
             minDate={minDate}
             maxDate={maxDate}
             onDayPress={(day) => {
+              if (submitting) return; // ✅ no cambiar mientras envía
               setSelectedDateStr(day.dateString);
               setSelectedTimeStr("");
             }}
@@ -229,12 +242,32 @@ export function BookServiceScreen() {
 
         <View>
           <Text style={{ fontWeight: "600", marginBottom: 6 }}>Hora</Text>
-          <TimeSlotsGrid slots={slotsForSelectedDay} value={selectedTimeStr} onChange={setSelectedTimeStr} />
+          <TimeSlotsGrid
+            slots={slotsForSelectedDay}
+            value={selectedTimeStr}
+            onChange={(v) => {
+              if (submitting) return; // ✅ no cambiar mientras envía
+              setSelectedTimeStr(v);
+            }}
+          />
         </View>
 
         <TextField label="Notas (opcional)" value={notes} onChangeText={setNotes} placeholder="Detalles adicionales" />
 
-        <Button title="Confirmar reserva" onPress={handleConfirm} />
+        {/* Indicador simple */}
+        {submitting && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <ActivityIndicator color={theme.colors.primaryDark} />
+            <Text style={{ color: "#666" }}>Creando reserva…</Text>
+          </View>
+        )}
+
+        {/* Botón bloqueado */}
+        <Button
+          title={submitting ? "Procesando..." : "Confirmar reserva"}
+          onPress={handleConfirm}
+          disabled={!canSubmit}
+        />
       </Card>
     </ScrollView>
   );

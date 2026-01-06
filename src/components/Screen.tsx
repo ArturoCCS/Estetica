@@ -1,15 +1,44 @@
 import React from "react";
-import { StyleSheet, View, ViewProps } from "react-native";
-import { theme } from "../theme/theme";
+import { Platform, ScrollView, StyleProp, View, ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export function Screen({ style, ...props }: ViewProps) {
-  return <View {...props} style={[styles.container, style]} />;
-}
+type Props = {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  scroll?: boolean;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+};
 
-const styles = StyleSheet.create({
-  container: {
+export function Screen({ children, style, scroll = false, contentContainerStyle }: Props) {
+  const insets = useSafeAreaInsets();
+
+  const base: ViewStyle = {
     flex: 1,
-    backgroundColor: theme.colors.bg,
-    padding: theme.spacing.md
+    backgroundColor: "#fff",
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
+    paddingHorizontal: 16,
+  };
+
+  if (scroll) {
+    return (
+      <ScrollView
+        style={[
+          base,
+          Platform.OS === "web" && ({ overflowY: "auto" } as any),
+        ]}
+        contentContainerStyle={[
+          { flexGrow: 1, paddingBottom: insets.bottom + 24 },
+          contentContainerStyle,
+          style,
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {children}
+      </ScrollView>
+    );
   }
-});
+
+  return <View style={[base, style]}>{children}</View>;
+}

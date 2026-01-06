@@ -1,205 +1,203 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import React, { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { Alert, ScrollView } from "react-native";
-import { z } from "zod";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import React, { useMemo, useState } from "react";
+import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 
-import { useNavigation } from "@react-navigation/native";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
+import { EditableImageUrlList } from "../../components/EditableImageUrlList";
+import { HeaderBack } from "../../components/HeaderBack";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { db } from "../../lib/firebase";
-import { theme } from "../../theme/theme";
 
-const schema = z.object({
-  name: z.string().min(2, "Nombre requerido"),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  durationMin: z.string().min(1, "Requerido"),
-  durationMax: z.string().min(1, "Requerido"),
-  price: z.string().optional(),
-  imageUrl: z.string().url("Debes poner una URL válida").optional().or(z.literal(""))
-}).superRefine((v, ctx) => {
-  const min = Number(v.durationMin); const max = Number(v.durationMax);
-  if (Number.isNaN(min) || min < 10)
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["durationMin"], message: "Mínimo 10 min" });
-  if (Number.isNaN(max) || max < 10)
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["durationMax"], message: "Mínimo 10 min" });
-  if (!Number.isNaN(min) && !Number.isNaN(max) && max < min)
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["durationMax"], message: "La duración máxima debe ser mayor o igual a la mínima" });
-  const priceTrim = (v.price ?? "").trim();
-  if (priceTrim.length > 0) {
-    const p = Number(priceTrim.replace(",", "."));
-    if (Number.isNaN(p) || p < 0)
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["price"], message: "Precio inválido" });
-  }
-});
-
-type FormValues = z.infer<typeof schema>;
-type Props = {
-  initialValues?: Partial<FormValues>;
-  serviceId?: string;
-  onDone: () => void;
+/**
+ * Valores que maneja el formulario (strings porque vienen de inputs).
+ * OJO: duration y price pueden quedar vacíos => se guardan como null para "por valoración".
+ */
+export type ServiceFormValues = {
+  name: string;
+  description: string;
+  category?: string; // si no lo usas, puedes quitarlo
+  durationMin: string; // minutos
+  durationMax: string; // minutos
+  price: string;       // MXN
+  imageUrl: string;    // portada/hero (compat con tu modelo actual)
+  heroImageUrl?: string; // opcional si migras
+  galleryUrls?: string[]; // ✅ mini landing gallery (links)
 };
 
-export function ServiceForm({ initialValues, serviceId, onDone }: Props) {
-  const navigation = useNavigation();
-  const { control, handleSubmit, formState, reset, setValue } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      description: "",
-      category: "general",
-      durationMin: "60",
-      durationMax: "90",
-      price: "",
-      imageUrl: "",
-      ...initialValues
-    }
-  });
+export type ServiceFormProps = {
+  serviceId: string;
+  initialValues: ServiceFormValues;
+  onDone?: () => void;
+};
 
-  useEffect(() => {
-    if (initialValues) {
-      reset({ ...initialValues });
-    }
-  }, [initialValues]);
+function toNumberOrNull(v: string): number | null {
+  const t = (v ?? "").trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
 
-  const onSubmit = async (values: FormValues) => {
+export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormProps) {
+  const isWeb = Platform.OS === "web";
+  const maxWidthStyle = useMemo<ViewStyle | null>(
+    () => (isWeb ? { maxWidth: 920, alignSelf: "center", width: "100%" } : null),
+    [isWeb]
+  );
+
+  // Estado local desde initialValues
+  const [name, setName] = useState(initialValues.name ?? "");
+  const [description, setDescription] = useState(initialValues.description ?? "");
+  const [category, setCategory] = useState(initialValues.category ?? "");
+  const [durationMin, setDurationMin] = useState(initialValues.durationMin ?? "");
+  const [durationMax, setDurationMax] = useState(initialValues.durationMax ?? "");
+  const [price, setPrice] = useState(initialValues.price ?? "");
+  const [imageUrl, setImageUrl] = useState(initialValues.imageUrl ?? "");
+  const [galleryUrls, setGalleryUrls] = useState<string[]>(initialValues.galleryUrls ?? []);
+
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (saving) return;
+
+    const n = name.trim();
+    if (!n) return Alert.alert("Nombre requerido", "Escribe el título del servicio.");
+
+    // Validaciones numéricas (solo si hay texto)
+    const dMin = toNumberOrNull(durationMin);
+    const dMax = toNumberOrNull(durationMax);
+    const p = toNumberOrNull(price);
+
+    if (durationMin.trim() && dMin === null) return Alert.alert("Duración min inválida");
+    if (durationMax.trim() && dMax === null) return Alert.alert("Duración max inválida");
+    if (price.trim() && p === null) return Alert.alert("Precio inválido");
+
+    if (dMin !== null && dMax !== null && dMax < dMin) {
+      return Alert.alert("Duración inválida", "La duración máxima no puede ser menor a la mínima.");
+    }
+
+    setSaving(true);
     try {
-      const durationMin = Number(values.durationMin);
-      const durationMax = Number(values.durationMax);
-      const priceTrim = (values.price ?? "").trim();
-      const price = priceTrim.length === 0 ? null : Number(priceTrim.replace(",", "."));
-      const payload = {
-        name: values.name.trim(),
-        description: (values.description ?? "").trim(),
-        category: (values.category ?? "general").trim(),
-        durationMin,
-        durationMax,
-        price,
-        active: true,
-        photos: [],
-        imageUrl: (values.imageUrl ?? "").trim(),
+      // Importante: como el admin edita desde app, aquí estás escribiendo directo Firestore.
+      // Si tus rules bloquean write en /services, esto fallará.
+      // En ese caso se debe guardar vía Cloud Function admin.
+      const payload: any = {
+        name: n,
+        description: description.trim() || null,
+        category: category.trim() || null,
+        durationMin: dMin,
+        durationMax: dMax,
+        price: p,
+        imageUrl: imageUrl.trim() || null,
+
+        // ✅ mini landing gallery
+        galleryUrls: (galleryUrls ?? []).filter(Boolean),
+
         updatedAt: serverTimestamp(),
       };
-      if (serviceId) {
-        // Editar servicio existente
-        await updateDoc(doc(db, "services", serviceId), payload);
-        Alert.alert("Editado", "El servicio fue actualizado");
-      } else {
-        // Crear nuevo servicio
-        await addDoc(collection(db, "services"), { ...payload, createdAt: serverTimestamp() });
-        Alert.alert("Listo", "Servicio creado");
-        reset();
-      }
-      onDone();
+
+      await updateDoc(doc(db, "services", serviceId), payload);
+
+      Alert.alert("Listo", "Servicio actualizado.");
+      onDone?.();
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "No se pudo guardar");
+      Alert.alert("Error", e?.message ?? "No se pudo guardar el servicio.");
+    } finally {
+      setSaving(false);
     }
-  };
+  }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Button title="Volver al panel" onPress={() => navigation.goBack()} />
-        <Card style={{ gap: theme.spacing.md }}>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Nombre"
-                value={value}
-                onChangeText={onChange}
-                error={formState.errors.name?.message}
-                placeholder="Ej. Uñas acrílicas"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Descripción"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="Qué incluye, recomendaciones, etc."
-                multiline
-                style={{ height: 90 }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="category"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Categoría"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="uñas, cabello, maquillaje…"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="durationMin"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Duración mínima (min)"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="number-pad"
-                error={formState.errors.durationMin?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="durationMax"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Duración máxima (min)"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="number-pad"
-                error={formState.errors.durationMax?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="price"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="Precio (opcional)"
-                value={value ?? ""}
-                onChangeText={onChange}
-                keyboardType="decimal-pad"
-                placeholder="Ej. 350"
-                error={formState.errors.price?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="imageUrl"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="URL de foto de referencia (opcional)"
-                value={value ?? ""}
-                onChangeText={onChange}
-                placeholder="https://ejemplo.com/foto.jpg"
-                error={formState.errors.imageUrl?.message}
-              />
-            )}
-          />
-          <Button title={serviceId ? "Guardar cambios" : "Guardar"} onPress={handleSubmit(onSubmit)} />
-        </Card>
-      </ScrollView>
+    <Screen scroll contentContainerStyle={[styles.page, maxWidthStyle]}>
+      <HeaderBack title="Editar servicio" />
+
+      <View style={styles.heroCard}>
+        <Text style={styles.heroTitle}>Mini landing del servicio</Text>
+        <Text style={styles.heroSub}>
+          Portada, descripción y galería (por links). Precio/tiempo se pueden omitir si es por valoración.
+        </Text>
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <TextField label="Título" value={name} onChangeText={setName} placeholder="Ej. Limpieza facial" />
+        <TextField
+          label="Descripción"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Describe el servicio…"
+          multiline
+        />
+        <TextField
+          label="Categoría (opcional)"
+          value={category}
+          onChangeText={setCategory}
+          placeholder="Ej. Faciales"
+        />
+        <TextField
+          label="Imagen principal (URL)"
+          value={imageUrl}
+          onChangeText={setImageUrl}
+          placeholder="https://..."
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <EditableImageUrlList value={galleryUrls} onChange={setGalleryUrls} label="Galería (URLs)" />
+      </View>
+
+      <View style={[styles.card, styles.soft]}>
+        <Text style={styles.sectionTitle}>Tiempo / Costo (opcionales)</Text>
+        <Text style={styles.hint}>Déjalos vacíos si depende de valoración.</Text>
+
+        <View style={styles.row2}>
+          <View style={{ flex: 1 }}>
+            <TextField
+              label="Duración min (min)"
+              value={durationMin}
+              onChangeText={setDurationMin}
+              keyboardType="numeric"
+              placeholder="60"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <TextField
+              label="Duración max (min)"
+              value={durationMax}
+              onChangeText={setDurationMax}
+              keyboardType="numeric"
+              placeholder="90"
+            />
+          </View>
+        </View>
+
+        <TextField label="Precio (MXN)" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="450" />
+      </View>
+
+      <Button title={saving ? "Guardando..." : "Guardar cambios"} onPress={handleSave} disabled={saving} />
+      <Button title="Cancelar" variant="secondary" onPress={() => onDone?.()} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  page: { gap: 14, paddingBottom: 30 },
+  heroCard: {
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "#fff1f2",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  heroTitle: { fontSize: 18, fontWeight: "900", color: "#1f1f1f" },
+  heroSub: { marginTop: 6, color: "#6b7280", lineHeight: 18 },
+  card: { borderRadius: 22, padding: 14, gap: 12 },
+  soft: {
+    backgroundColor: "rgba(255,255,255,0.86)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  sectionTitle: { fontWeight: "900", color: "#1f1f1f" },
+  hint: { color: "#6b7280", fontSize: 12 },
+  row2: { flexDirection: "row", gap: 12 },
+});

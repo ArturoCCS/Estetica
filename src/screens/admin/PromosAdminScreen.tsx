@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -63,7 +64,7 @@ export function PromosAdminScreen() {
 
   return (
     <Screen>
-      <Button title="Volver al panel administrador" onPress={() => navigation.goBack()} />
+      <HeaderBack />
       <Button title="Agregar promoción" onPress={() => setAdding(true)} />
       {loading ? (
         <Text style={{ color: theme.colors.muted, marginTop: 36 }}>Cargando…</Text>

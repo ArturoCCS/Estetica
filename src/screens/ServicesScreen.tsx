@@ -54,6 +54,9 @@ export function ServicesScreen() {
                   <Text style={ss.dur}>{item.durationMin}–{item.durationMax} min</Text>
                   {item.price && <Text style={ss.price}>${item.price}</Text>}
                 </View>
+                <Pressable style={ss.card} onPress={() => navigation.navigate("ServiceDetail", { serviceId: item.id })}>
+<Text style={{ color: "#fff", fontWeight: "600" }}>Book Appointment</Text>
+</Pressable>
                 <Pressable style={ss.bookBtn} onPress={() => navigation.navigate("BookService", { serviceId: item.id })}>
                   <Text style={{ color: "#fff", fontWeight: "600" }}>Book Appointment</Text>
                 </Pressable>

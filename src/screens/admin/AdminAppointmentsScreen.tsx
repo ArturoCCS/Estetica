@@ -1,3 +1,4 @@
+import { HeaderBack } from "@/src/components/HeaderBack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -144,6 +145,7 @@ export function AdminAppointmentsScreen() {
 
   return (
     <Screen>
+      <HeaderBack />
       <Text style={styles.title}>Gestión de Citas</Text>
 
       {/* Status Filter */}
