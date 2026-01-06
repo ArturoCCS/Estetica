@@ -11,6 +11,7 @@ import { ServicesAdminScreen } from "../screens/admin/ServicesAdminScreen";
 import { SettingsAdminScreen } from "../screens/admin/SettingsAdminScreen";
 import { BookServiceScreen } from "../screens/BookServiceScreen";
 import { LoginScreen } from "../screens/LoginScreen";
+import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PromoRouletteScreen } from "../screens/PromoRouletteScreen";
 import { ServiceDetailScreen } from "../screens/ServiceDetailScreen";
 import { SignupScreen } from "../screens/SignupScreen";
@@ -43,8 +44,8 @@ export function RootNavigator() {
           <Stack.Screen name="BookService" component={BookServiceScreen} />
           <Stack.Screen name="AdminAppointments" component={AdminAppointmentsScreen} />
           <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
-          {/* Registra SettingsAdmin en el Root Stack */}
           <Stack.Screen name="SettingsAdmin" component={SettingsAdminScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       )}
     </Stack.Navigator>

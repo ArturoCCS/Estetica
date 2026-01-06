@@ -21,4 +21,5 @@ export type RootStackParamList = {
   AdminAppointments: undefined;
   SettingsAdmin: undefined; // agregado
   ServiceDetail: { serviceId: string };
+  Notifications: undefined; // agregado
 };

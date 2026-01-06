@@ -18,6 +18,7 @@ import {
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types"; // Importa desde types.ts
 import { useAuth } from "../providers/AuthProvider";
+import { useNotificationBadge } from "../providers/NotificationBadgeProvider";
 import { theme } from "../theme/theme";
 
 const windowWidth = Dimensions.get("window").width;
@@ -60,6 +61,7 @@ export function HomeScreen() {
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>(); // TYPED!
   const { user } = useAuth();
+  const { badgeCount } = useNotificationBadge();
 
   // Servicios
   useEffect(() => {
@@ -183,7 +185,19 @@ export function HomeScreen() {
           <Text style={styles.greeting}>Hola 👋</Text>
           <Text style={styles.cityLabel}>Encuentra tu belleza perfecta</Text>
         </View>
-        <Ionicons name="notifications-outline" size={24} color="#1f1f1f" />
+        <Pressable 
+          onPress={() => navigation.navigate("Notifications")}
+          style={styles.bellContainer}
+        >
+          <Ionicons name="notifications-outline" size={24} color="#1f1f1f" />
+          {badgeCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       {/* PROMO CAROUSEL */}
@@ -371,6 +385,27 @@ const styles = StyleSheet.create({
     alignItems: "center", 
     paddingBottom: 16,
     marginBottom: 8,
+  },
+  bellContainer: {
+    position: "relative",
+    padding: 4,
+  },
+  badge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
   },
   greeting: {
     fontSize: 24,
