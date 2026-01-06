@@ -10,6 +10,7 @@ import { PromosAdminScreen } from "../screens/admin/PromosAdminScreen";
 import { ServicesAdminScreen } from "../screens/admin/ServicesAdminScreen";
 import { SettingsAdminScreen } from "../screens/admin/SettingsAdminScreen";
 import { BookServiceScreen } from "../screens/BookServiceScreen";
+import { CalendarScreen } from "../screens/CalendarScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PromoRouletteScreen } from "../screens/PromoRouletteScreen";
@@ -17,6 +18,7 @@ import { ServiceDetailScreen } from "../screens/ServiceDetailScreen";
 import { SignupScreen } from "../screens/SignupScreen";
 import { TabNavigator } from "./TabNavigator";
 import { RootStackParamList } from "./types";
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

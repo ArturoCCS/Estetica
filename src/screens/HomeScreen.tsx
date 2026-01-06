@@ -1,8 +1,9 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { addDoc, collection, getDocs, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import {
   Alert,
   Dimensions,
@@ -15,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { NotificationBell } from "../components/NotificationBell";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types"; // Importa desde types.ts
 import { useAuth } from "../providers/AuthProvider";
@@ -171,7 +173,7 @@ export function HomeScreen() {
     Alert.alert("Promoción", promo.text);
   }
 
-  const containerStyle = isWeb ? { maxWidth: 1200, alignSelf: "center" as const, width: "100%" } : {};
+  const containerStyle: StyleProp<ViewStyle> = isWeb ? { maxWidth: 1200, alignSelf: "center" as const } : undefined;
 
   return (
     <ScrollView 
