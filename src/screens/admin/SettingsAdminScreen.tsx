@@ -25,6 +25,7 @@ const schema = z.object({
   bookingMaxDays: z.string().regex(/^\d+$/, "Número").optional(),
   whatsAppPhone: z.string().optional(),
   whatsAppTemplate: z.string().optional(),
+  paymentsEnabled: z.boolean(),
   businessHours: z.array(z.object({
     key: z.enum(["mon","tue","wed","thu","fri","sat","sun"]),
     enabled: z.boolean(),
@@ -59,6 +60,7 @@ export function SettingsAdminScreen() {
       bookingMaxDays: String(settings?.bookingMaxDays ?? 30),
       whatsAppPhone: settings?.whatsApp?.phone || "",
       whatsAppTemplate: settings?.whatsApp?.defaultMessageTemplate || "",
+      paymentsEnabled: settings?.paymentsEnabled ?? false,
       businessHours: dayOrder.map(k => {
         const bh = settings?.businessHours?.[k] || { enabled: k !== "sun", start: "09:00", end: "19:00" };
         return { key: k, enabled: bh.enabled, start: bh.start, end: bh.end };
@@ -79,6 +81,7 @@ export function SettingsAdminScreen() {
         bookingMaxDays: String(settings.bookingMaxDays ?? 30),
         whatsAppPhone: settings.whatsApp?.phone || "",
         whatsAppTemplate: settings.whatsApp?.defaultMessageTemplate || "",
+        paymentsEnabled: settings.paymentsEnabled ?? false,
         businessHours: dayOrder.map(k => {
           const bh = settings.businessHours[k];
           return { key: k, enabled: bh.enabled, start: bh.start, end: bh.end };
@@ -96,6 +99,7 @@ export function SettingsAdminScreen() {
         slotIntervalMinutes: values.slotIntervalMinutes ? Number(values.slotIntervalMinutes) : 30,
         bookingMinLeadMinutes: values.bookingMinLeadMinutes ? Number(values.bookingMinLeadMinutes) : 60,
         bookingMaxDays: values.bookingMaxDays ? Number(values.bookingMaxDays) : 30,
+        paymentsEnabled: values.paymentsEnabled,
         businessHours: values.businessHours.reduce((acc, cur) => {
           acc[cur.key] = { enabled: cur.enabled, start: cur.start, end: cur.end };
           return acc;
@@ -139,6 +143,20 @@ export function SettingsAdminScreen() {
           )} />
           <Controller control={control} name="whatsAppTemplate" render={({ field: { value, onChange } }) => (
             <TextField label="Plantilla mensaje WhatsApp (opcional)" value={value ?? ""} onChangeText={onChange} />
+          )} />
+          
+          <View style={{ gap: 6, borderTopWidth: 1, borderColor: theme.colors.border, paddingTop: 12, marginTop: 8 }}>
+            <Text style={{ fontWeight: "700", fontSize: 16 }}>Pagos</Text>
+            <Controller control={control} name="paymentsEnabled" render={({ field: { value, onChange } }) => (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Text>Habilitar pagos (Mercado Pago)</Text>
+                <Switch value={value} onValueChange={onChange} />
+              </View>
+            )} />
+            <Text style={{ color: theme.colors.muted, fontSize: 12 }}>
+              Si está deshabilitado, las citas se confirman sin pago.
+            </Text>
+          </View>
           )} />
         </Card>
 
