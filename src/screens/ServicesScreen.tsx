@@ -92,7 +92,7 @@ export function ServicesScreen() {
             ss.grid,
             isWeb && { maxWidth: 1200, alignSelf: "center", width: "100%" }
           ]}
-          columnWrapperStyle={{ gap: 16 }}
+          columnWrapperStyle={numColumns > 1 ? { gap: 16 } : undefined}
           ListEmptyComponent={<Text style={ss.empty}>No hay servicios disponibles.</Text>}
           renderItem={({ item }) => {
             const hero = item.heroImageUrl || item.imageUrl;
