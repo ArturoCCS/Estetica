@@ -46,11 +46,7 @@ export function RootNavigator() {
           <Stack.Screen name="BookService" component={BookServiceScreen} />
           <Stack.Screen name="AdminAppointments" component={AdminAppointmentsScreen} />
           <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
-          {/* Registra SettingsAdmin en el Root Stack */}
           <Stack.Screen name="SettingsAdmin" component={SettingsAdminScreen} />
-          
-          <Stack.Screen name="Calendar" component={CalendarScreen} />
-          
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       )}
