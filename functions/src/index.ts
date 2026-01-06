@@ -197,6 +197,10 @@ export const createPaymentPreference = onRequest(async (req, res) => {
 
 export const mercadoPagoWebhook = onRequest(async (req, res) => {
   try {
+    // NOTE: In production, validate webhook signature using x-signature header
+    // See: https://www.mercadopago.com/developers/en/docs/your-integrations/notifications/webhooks#bookmark_validate_origin
+    // For now, we validate by fetching payment data directly from MP API
+    
     const { type, data } = req.body;
 
     console.log("MP Webhook received:", { type, data });
