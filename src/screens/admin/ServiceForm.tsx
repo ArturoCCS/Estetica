@@ -81,6 +81,7 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
       // Importante: como el admin edita desde app, aquí estás escribiendo directo Firestore.
       // Si tus rules bloquean write en /services, esto fallará.
       // En ese caso se debe guardar vía Cloud Function admin.
+      const heroUrl = heroImageUrl.trim() || null;
       const payload: any = {
         name: n,
         description: description.trim() || null,
@@ -88,8 +89,8 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
         durationMin: dMin,
         durationMax: dMax,
         price: p,
-        heroImageUrl: heroImageUrl.trim() || null,
-        imageUrl: heroImageUrl.trim() || null, // backward compatibility
+        heroImageUrl: heroUrl,
+        imageUrl: heroUrl, // backward compatibility
 
         // ✅ mini landing gallery
         galleryUrls: (galleryUrls ?? []).filter(Boolean),

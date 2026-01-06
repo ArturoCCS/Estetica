@@ -1,10 +1,10 @@
-import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import React, { useState } from "react";
 import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Button } from "../../components/Button";
 import { EditableImageUrlList } from "../../components/EditableImageUrlList";
+import { HeaderBack } from "../../components/HeaderBack";
 import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { db } from "../../lib/firebase";
@@ -52,6 +52,7 @@ export function CreateServiceScreen() {
 
     setSaving(true);
     try {
+      const heroUrl = heroImageUrl.trim() || null;
       await addDoc(collection(db, "services"), {
         name: n,
         description: description.trim() || null,
@@ -59,8 +60,8 @@ export function CreateServiceScreen() {
         durationMin: dMin,
         durationMax: dMax,
         price: p,
-        heroImageUrl: heroImageUrl.trim() || null,
-        imageUrl: heroImageUrl.trim() || null, // backward compatibility
+        heroImageUrl: heroUrl,
+        imageUrl: heroUrl, // backward compatibility
         galleryUrls: (galleryUrls ?? []).filter(Boolean),
         active: true,
         createdAt: serverTimestamp(),

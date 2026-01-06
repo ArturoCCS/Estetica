@@ -125,7 +125,9 @@ export function ServicesScreen() {
                     {item.durationMin && (
                       <View style={ss.metaPill}>
                         <Ionicons name="time-outline" size={12} color="#6b7280" />
-                        <Text style={ss.metaText}>{item.durationMin}-{item.durationMax || item.durationMin}min</Text>
+                        <Text style={ss.metaText}>
+                          {item.durationMax ? `${item.durationMin}-${item.durationMax}min` : `${item.durationMin}min`}
+                        </Text>
                       </View>
                     )}
                   </View>
