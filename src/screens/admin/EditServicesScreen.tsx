@@ -48,11 +48,8 @@ export function EditServiceScreen() {
           durationMin: String(service.durationMin ?? ""),
           durationMax: String(service.durationMax ?? ""),
           price: service.price ? String(service.price) : "",
-          imageUrl: service.imageUrl ?? service.heroImageUrl ?? "",
-
-          // Si tu ServiceForm ya soporta estos campos nuevos, pásalos:
-         heroImageUrl: service.heroImageUrl ?? "",
-           galleryUrls: Array.isArray(service.galleryUrls) ? service.galleryUrls : [],
+          heroImageUrl: service.heroImageUrl ?? service.imageUrl ?? "",
+          galleryUrls: Array.isArray(service.galleryUrls) ? service.galleryUrls : [],
         }}
         serviceId={service.id}
         onDone={() => navigation.goBack()}

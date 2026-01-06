@@ -16,12 +16,12 @@ import { db } from "../../lib/firebase";
 export type ServiceFormValues = {
   name: string;
   description: string;
-  category?: string; // si no lo usas, puedes quitarlo
+  category?: string;
   durationMin: string; // minutos
   durationMax: string; // minutos
   price: string;       // MXN
-  imageUrl: string;    // portada/hero (compat con tu modelo actual)
-  heroImageUrl?: string; // opcional si migras
+  imageUrl?: string;    // backward compatibility
+  heroImageUrl: string; // primary hero image
   galleryUrls?: string[]; // ✅ mini landing gallery (links)
 };
 
@@ -52,7 +52,7 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
   const [durationMin, setDurationMin] = useState(initialValues.durationMin ?? "");
   const [durationMax, setDurationMax] = useState(initialValues.durationMax ?? "");
   const [price, setPrice] = useState(initialValues.price ?? "");
-  const [imageUrl, setImageUrl] = useState(initialValues.imageUrl ?? "");
+  const [heroImageUrl, setHeroImageUrl] = useState(initialValues.heroImageUrl ?? "");
   const [galleryUrls, setGalleryUrls] = useState<string[]>(initialValues.galleryUrls ?? []);
 
   const [saving, setSaving] = useState(false);
@@ -88,7 +88,8 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
         durationMin: dMin,
         durationMax: dMax,
         price: p,
-        imageUrl: imageUrl.trim() || null,
+        heroImageUrl: heroImageUrl.trim() || null,
+        imageUrl: heroImageUrl.trim() || null, // backward compatibility
 
         // ✅ mini landing gallery
         galleryUrls: (galleryUrls ?? []).filter(Boolean),
@@ -134,9 +135,9 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
           placeholder="Ej. Faciales"
         />
         <TextField
-          label="Imagen principal (URL)"
-          value={imageUrl}
-          onChangeText={setImageUrl}
+          label="Imagen principal / Hero (URL)"
+          value={heroImageUrl}
+          onChangeText={setHeroImageUrl}
           placeholder="https://..."
           autoCapitalize="none"
         />

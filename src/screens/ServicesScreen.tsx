@@ -2,16 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
 import { theme } from "../theme/theme";
 import { Service } from "../types/domain";
 
+const { width: WINDOW_WIDTH } = Dimensions.get("window");
+
 export function ServicesScreen() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
@@ -27,42 +30,109 @@ export function ServicesScreen() {
     return () => unsub();
   }, []);
 
+  // Extract unique categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    services.forEach(s => {
+      if (s.category) cats.add(s.category);
+    });
+    return Array.from(cats).sort();
+  }, [services]);
+
+  const filteredServices = useMemo(() => {
+    if (!filter) return services;
+    return services.filter(s => s.category === filter);
+  }, [services, filter]);
+
+  // Responsive columns: 2 on mobile, 3-4 on web
+  const isWeb = Platform.OS === "web";
+  const numColumns = isWeb ? (WINDOW_WIDTH > 1024 ? 4 : 3) : 2;
+  const cardWidth = isWeb 
+    ? (Math.min(WINDOW_WIDTH, 1200) - 48 - (numColumns - 1) * 16) / numColumns
+    : (WINDOW_WIDTH - 48 - 16) / 2;
+
   return (
     <View style={ss.container}>
-      <Text style={ss.title}>Services</Text>
+      {/* Header */}
+      <View style={ss.header}>
+        <Text style={ss.title}>Servicios</Text>
+        <Text style={ss.subtitle}>Encuentra el servicio perfecto para ti</Text>
+      </View>
+
+      {/* Filter pills */}
+      {categories.length > 0 && (
+        <View style={ss.filtersWrap}>
+          <Pressable
+            style={[ss.pill, !filter && ss.pillActive]}
+            onPress={() => setFilter(null)}
+          >
+            <Text style={[ss.pillText, !filter && ss.pillTextActive]}>Todos</Text>
+          </Pressable>
+          {categories.map(cat => (
+            <Pressable
+              key={cat}
+              style={[ss.pill, filter === cat && ss.pillActive]}
+              onPress={() => setFilter(cat)}
+            >
+              <Text style={[ss.pillText, filter === cat && ss.pillTextActive]}>{cat}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color={theme.colors.primaryDark} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
-          data={services}
+          data={filteredServices}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ gap: 16, paddingBottom: 70 }}
-          ListEmptyComponent={<Text style={ss.empty}>No services available yet.</Text>}
-          renderItem={({ item }) => (
-            <View style={ss.card}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={ss.img} />
-              ) : (
-                <View style={[ss.img, { backgroundColor: "#F3F3F2", justifyContent: "center", alignItems: "center" }]}>
-                  <Ionicons name="image-outline" size={36} color="#CCC" />
+          key={`grid-${numColumns}`}
+          numColumns={numColumns}
+          contentContainerStyle={[
+            ss.grid,
+            isWeb && { maxWidth: 1200, alignSelf: "center", width: "100%" }
+          ]}
+          columnWrapperStyle={{ gap: 16 }}
+          ListEmptyComponent={<Text style={ss.empty}>No hay servicios disponibles.</Text>}
+          renderItem={({ item }) => {
+            const hero = item.heroImageUrl || item.imageUrl;
+            return (
+              <Pressable 
+                style={[ss.card, { width: cardWidth }]} 
+                onPress={() => navigation.navigate("ServiceDetail", { serviceId: item.id })}
+              >
+                {hero ? (
+                  <Image source={{ uri: hero }} style={ss.cardImg} />
+                ) : (
+                  <View style={[ss.cardImg, ss.cardImgPlaceholder]}>
+                    <Ionicons name="image-outline" size={32} color="#d1d5db" />
+                  </View>
+                )}
+                <View style={ss.cardBody}>
+                  <Text style={ss.cardName} numberOfLines={2}>{item.name}</Text>
+                  <View style={ss.cardMeta}>
+                    {item.price ? (
+                      <View style={ss.metaPill}>
+                        <Ionicons name="cash-outline" size={12} color="#6b7280" />
+                        <Text style={ss.metaText}>${item.price}</Text>
+                      </View>
+                    ) : (
+                      <View style={ss.metaPill}>
+                        <Ionicons name="sparkles-outline" size={12} color="#6b7280" />
+                        <Text style={ss.metaText}>Valoración</Text>
+                      </View>
+                    )}
+                    {item.durationMin && (
+                      <View style={ss.metaPill}>
+                        <Ionicons name="time-outline" size={12} color="#6b7280" />
+                        <Text style={ss.metaText}>{item.durationMin}-{item.durationMax || item.durationMin}min</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              )}
-              <View style={ss.info}>
-                <Text style={ss.name}>{item.name}</Text>
-                {!!item.description && <Text style={ss.desc}>{item.description}</Text>}
-                <View style={ss.row}>
-                  <Text style={ss.dur}>{item.durationMin}–{item.durationMax} min</Text>
-                  {item.price && <Text style={ss.price}>${item.price}</Text>}
-                </View>
-                <Pressable style={ss.card} onPress={() => navigation.navigate("ServiceDetail", { serviceId: item.id })}>
-<Text style={{ color: "#fff", fontWeight: "600" }}>Book Appointment</Text>
-</Pressable>
-                <Pressable style={ss.bookBtn} onPress={() => navigation.navigate("BookService", { serviceId: item.id })}>
-                  <Text style={{ color: "#fff", fontWeight: "600" }}>Book Appointment</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>
@@ -70,16 +140,120 @@ export function ServicesScreen() {
 }
 
 const ss = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 18, paddingTop: 24 },
-  title: { fontSize: 21, fontWeight: "700", color: "#222", marginBottom: 8 },
-  card: { flexDirection: "row", backgroundColor: "#fefefe", borderRadius: 18, shadowColor: "#ddd", shadowOpacity: 0.09, shadowRadius: 7, elevation: 2 },
-  img: { width: 96, height: 96, borderTopLeftRadius: 18, borderBottomLeftRadius: 18 },
-  info: { flex: 1, padding: 10 },
-  name: { fontWeight: "bold", fontSize: 17, color: "#222" },
-  desc: { color: "#888", marginTop: 5, fontSize: 13 },
-  row: { flexDirection: "row", gap: 10, marginTop: 3, alignItems: "center" },
-  dur: { color: "#999", fontSize: 12 },
-  price: { fontWeight: "bold", color: theme.colors.primaryDark },
-  empty: { textAlign: "center", color: "#999", marginTop: 44 },
-  bookBtn: { marginTop: 9, backgroundColor: theme.colors.primary, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 7, alignItems: "center" }
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fafafa",
+    paddingHorizontal: 16, 
+    paddingTop: 24 
+  },
+  header: { 
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: "900", 
+    color: "#1f1f1f",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  filtersWrap: { 
+    flexDirection: "row", 
+    flexWrap: "wrap",
+    gap: 8, 
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  pillActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#6b7280",
+  },
+  pillTextActive: {
+    color: "#fff",
+  },
+  grid: { 
+    gap: 16, 
+    paddingBottom: 80,
+    paddingHorizontal: 4,
+  },
+  card: { 
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { 
+        elevation: 3 
+      },
+      web: {
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      }
+    }),
+  },
+  cardImg: { 
+    width: "100%", 
+    height: 140,
+    backgroundColor: "#f3f4f6",
+  },
+  cardImgPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardBody: { 
+    padding: 12,
+    gap: 8,
+  },
+  cardName: { 
+    fontWeight: "800", 
+    fontSize: 15, 
+    color: "#1f1f1f",
+    lineHeight: 20,
+  },
+  cardMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  metaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "#f9fafb",
+  },
+  metaText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  empty: { 
+    textAlign: "center", 
+    color: "#9ca3af", 
+    marginTop: 44,
+    fontSize: 14,
+  },
 });

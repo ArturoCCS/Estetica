@@ -8,6 +8,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import { useAuth } from "../providers/AuthProvider";
 import { theme } from "../theme/theme";
 
 const windowWidth = Dimensions.get("window").width;
+const isWeb = Platform.OS === "web";
 
 type Service = {
   id: string;
@@ -27,6 +29,7 @@ type Service = {
   price?: number;
   icon?: string;
   imageUrl?: string;
+  heroImageUrl?: string;
   description?: string;
   durationMin?: number;
   durationMax?: number;
@@ -166,72 +169,83 @@ export function HomeScreen() {
     Alert.alert("Promoción", promo.text);
   }
 
+  const containerStyle = isWeb ? { maxWidth: 1200, alignSelf: "center" as const, width: "100%" } : {};
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={containerStyle}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cityLabel}>New York, USA</Text>
+          <Text style={styles.greeting}>Hola 👋</Text>
+          <Text style={styles.cityLabel}>Encuentra tu belleza perfecta</Text>
         </View>
-        <Ionicons name="location-sharp" size={22} color={theme.colors.primaryDark} />
+        <Ionicons name="notifications-outline" size={24} color="#1f1f1f" />
       </View>
 
       {/* PROMO CAROUSEL */}
-      <Text style={styles.sectionTitle}>Promociones</Text>
       {loadingPromos ? (
         <SkeletonPromoCarousel />
-      ) : promos.filter(canShowPromo).length > 0 ? (
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 8, marginBottom: 21 }}>
-          {promos.filter(canShowPromo).map(promo => (
-            <View key={promo.id} style={styles.promoCard}>
-              <Image source={{ uri: promo.imageUrl }} style={styles.promoImg} />
-              <View style={styles.promoOverlay}>
-                <Text style={styles.promoText}>{promo.text}</Text>
-                <Pressable
-                  style={styles.promoBtn}
-                  onPress={() => handlePromoAction(promo)}
-                >
-                  <Text style={{ color: "#fff", fontWeight: "bold" }}>{promo.cta}</Text>
-                </Pressable>
+      ) : promos.filter(canShowPromo).length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Promociones especiales</Text>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8, marginBottom: 24 }}>
+            {promos.filter(canShowPromo).map(promo => (
+              <View key={promo.id} style={styles.promoCard}>
+                <Image source={{ uri: promo.imageUrl }} style={styles.promoImg} />
+                <View style={styles.promoOverlay}>
+                  <Text style={styles.promoText}>{promo.text}</Text>
+                  <Pressable
+                    style={styles.promoBtn}
+                    onPress={() => handlePromoAction(promo)}
+                  >
+                    <Text style={styles.promoBtnText}>{promo.cta}</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
-      ) : (
-        <Text style={styles.emptyText}>Sin promociones disponibles.</Text>
+            ))}
+          </ScrollView>
+        </>
       )}
 
       {/* SERVICIOS */}
-      <Text style={styles.sectionTitle}>Nuestros Servicios</Text>
+      <Text style={styles.sectionTitle}>Nuestros servicios</Text>
       {loadingServices ? (
         <SkeletonServices />
       ) : services.length > 0 ? (
         <FlatList
           data={services}
           horizontal
-          renderItem={({ item }) => (
-            <Pressable style={styles.serviceCard} onPress={() => navigation.navigate("Main", { screen: "Services" })}>
-              <View style={styles.iconCircle}>
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.serviceImg} resizeMode="cover" />
+          renderItem={({ item }) => {
+            const hero = item.heroImageUrl || item.imageUrl;
+            return (
+              <Pressable 
+                style={styles.serviceCard} 
+                onPress={() => navigation.navigate("ServiceDetail", { serviceId: item.id })}
+              >
+                {hero ? (
+                  <Image source={{ uri: hero }} style={styles.serviceImg} resizeMode="cover" />
                 ) : (
-                  <MaterialCommunityIcons
-                    title={item.icon || "spa"}
-                    size={32}
-                    color={theme.colors.primary}
-                  />
+                  <View style={[styles.serviceImg, styles.serviceImgPlaceholder]}>
+                    <Ionicons name="image-outline" size={28} color="#d1d5db" />
+                  </View>
                 )}
-              </View>
-              <Text style={styles.serviceName}>{item.name}</Text>
-              {item.price && <Text style={styles.servicePrice}>${item.price}</Text>}
-            </Pressable>
-          )}
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceName} numberOfLines={2}>{item.name}</Text>
+                  {item.price && <Text style={styles.servicePrice}>${item.price}</Text>}
+                </View>
+              </Pressable>
+            );
+          }}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ gap: 17, marginTop: 12, marginBottom: 19, paddingLeft: 5, paddingRight: 5 }}
+          contentContainerStyle={{ gap: 12, marginTop: 12, marginBottom: 24, paddingHorizontal: 2 }}
           showsHorizontalScrollIndicator={false}
         />
       ) : (
@@ -239,56 +253,60 @@ export function HomeScreen() {
       )}
 
       {/* GALERÍA DE FOTOS */}
-      <Text style={styles.sectionTitle}>Galería</Text>
-      {loadingGallery ? (
-        <SkeletonGallery />
-      ) : gallery.length > 0 ? (
-        <FlatList
-          horizontal
-          data={gallery}
-          keyExtractor={img => img.id}
-          renderItem={({ item }) =>
-            item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.galleryImg} />
-            ) : null
-          }
-          contentContainerStyle={{ gap: 10, marginTop: 7, marginBottom: 24, paddingLeft: 2 }}
-          showsHorizontalScrollIndicator={false}
-        />
-      ) : (
-        <Text style={styles.emptyText}>Sin fotos en galería aún.</Text>
+      {gallery.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Galería</Text>
+          {loadingGallery ? (
+            <SkeletonGallery />
+          ) : (
+            <FlatList
+              horizontal
+              data={gallery}
+              keyExtractor={img => img.id}
+              renderItem={({ item }) =>
+                item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.galleryImg} />
+                ) : null
+              }
+              contentContainerStyle={{ gap: 12, marginTop: 8, marginBottom: 24, paddingHorizontal: 2 }}
+              showsHorizontalScrollIndicator={false}
+            />
+          )}
+        </>
       )}
 
       {/* TESTIMONIOS */}
-      <Text style={styles.sectionTitle}>Clientes felices</Text>
-      {loadingReviews ? (
-        <SkeletonReviews />
-      ) : reviews.length > 0 ? (
-        <FlatList
-          horizontal
-          data={reviews}
-          keyExtractor={r => r.id}
-          renderItem={({ item }) => (
-            <View style={styles.reviewCard}>
-              {item.image ?
-                <Image source={{ uri: item.image }} style={styles.reviewAvatar} />
-                : <View style={[styles.reviewAvatar, { backgroundColor: "#eee" }]} /> }
-              <View>
-                <Text style={styles.reviewName}>{item.name}</Text>
-                <View style={styles.starRow}>
-                  {[...Array(Math.round(item.rating))].map((_, i) => (
-                    <Ionicons key={i} name="star" size={14} color="#FA4376" />
-                  ))}
+      {reviews.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Clientes felices</Text>
+          {loadingReviews ? (
+            <SkeletonReviews />
+          ) : (
+            <FlatList
+              horizontal
+              data={reviews}
+              keyExtractor={r => r.id}
+              renderItem={({ item }) => (
+                <View style={styles.reviewCard}>
+                  {item.image ?
+                    <Image source={{ uri: item.image }} style={styles.reviewAvatar} />
+                    : <View style={[styles.reviewAvatar, { backgroundColor: "#f3f4f6" }]} /> }
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reviewName}>{item.name}</Text>
+                    <View style={styles.starRow}>
+                      {[...Array(Math.round(item.rating))].map((_, i) => (
+                        <Ionicons key={i} name="star" size={13} color="#fbbf24" />
+                      ))}
+                    </View>
+                    <Text style={styles.reviewComment} numberOfLines={2}>{item.comment}</Text>
+                  </View>
                 </View>
-                <Text style={styles.reviewComment}>{item.comment}</Text>
-              </View>
-            </View>
+              )}
+              contentContainerStyle={{ gap: 12, marginTop: 8, marginBottom: 30, paddingHorizontal: 2 }}
+              showsHorizontalScrollIndicator={false}
+            />
           )}
-          contentContainerStyle={{ gap: 17, marginTop: 7, marginBottom: 30, paddingLeft: 2 }}
-          showsHorizontalScrollIndicator={false}
-        />
-      ) : (
-        <Text style={styles.emptyText}>Sin testimonios aún.</Text>
+        </>
       )}
 
       {/* CTA importante */}
@@ -296,7 +314,8 @@ export function HomeScreen() {
         style={styles.bookCta}
         onPress={() => navigation.navigate("Main", { screen: "Services" })}
       >
-        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>¡Reserva tu cita ahora!</Text>
+        <Text style={styles.bookCtaText}>Ver todos los servicios</Text>
+        <Ionicons name="arrow-forward" size={20} color="#fff" />
       </Pressable>
     </ScrollView>
   );
@@ -305,62 +324,255 @@ export function HomeScreen() {
 // SKELETONS (componentes insignificantes, solo UI)
 function SkeletonPromoCarousel() {
   return (
-    <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+    <View style={{ flexDirection: "row", gap: 10, marginBottom: 20, marginTop: 8 }}>
       {[1,2].map(i =>
-        <View key={i} style={[styles.promoCard, { backgroundColor: "#f3f2f6" }]} />
+        <View key={i} style={[styles.promoCard, { backgroundColor: "#f3f4f6" }]} />
       )}
     </View>
   );
 }
 function SkeletonServices() {
   return (
-    <View style={{ flexDirection: "row", gap: 16, marginBottom: 18 }}>
+    <View style={{ flexDirection: "row", gap: 12, marginBottom: 24, marginTop: 12 }}>
       {[0,1,2].map(i =>
-        <View key={i} style={[styles.serviceCard, { backgroundColor: "#f2f2f2", minWidth: 110, minHeight: 90 }]} />
+        <View key={i} style={{ backgroundColor: "#f3f4f6", borderRadius: 16, minWidth: 140, height: 180 }} />
       )}
     </View>
   );
 }
 function SkeletonGallery() {
   return (
-    <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
+    <View style={{ flexDirection: "row", gap: 12, marginBottom: 24, marginTop: 8 }}>
       {[0,1,2,3].map(i =>
-        <View key={i} style={{ width: 110, height: 90, borderRadius: 12, backgroundColor: "#ebebeb" }} />
+        <View key={i} style={{ width: 140, height: 100, borderRadius: 16, backgroundColor: "#f3f4f6" }} />
       )}
     </View>
   );
 }
 function SkeletonReviews() {
   return (
-    <View style={{ flexDirection: "row", gap: 13, marginBottom: 26 }}>
+    <View style={{ flexDirection: "row", gap: 12, marginBottom: 30, marginTop: 8 }}>
       {[0,1].map(i =>
-        <View key={i} style={{ backgroundColor: "#ede7ec", borderRadius: 16, flexDirection: "row", alignItems: "center", padding: 12, minWidth: 170, height: 58 }} />
+        <View key={i} style={{ backgroundColor: "#f3f4f6", borderRadius: 16, flexDirection: "row", alignItems: "center", padding: 12, minWidth: 220, height: 80 }} />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: 16, paddingHorizontal: 10 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingBottom: 3 },
-  cityLabel: { fontWeight: "700", fontSize: 15, color: "#111" },
-  sectionTitle: { fontSize: 17, fontWeight: "bold", color: "#FA4376", marginVertical: 10 },
-  emptyText: { color: "#aaa", textAlign: "center", marginBottom: 14 },
-  promoCard: { width: windowWidth * 0.89, height: 120, borderRadius: 26, overflow: "hidden", marginRight: 9 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fafafa", 
+    paddingTop: 16, 
+    paddingHorizontal: 16 
+  },
+  headerRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    paddingBottom: 16,
+    marginBottom: 8,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#1f1f1f",
+    letterSpacing: -0.5,
+  },
+  cityLabel: { 
+    fontWeight: "400", 
+    fontSize: 14, 
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "900", 
+    color: "#1f1f1f",
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  emptyText: { 
+    color: "#9ca3af", 
+    textAlign: "center", 
+    marginBottom: 20,
+    fontSize: 13,
+  },
+  promoCard: { 
+    width: windowWidth * 0.9, 
+    height: 160, 
+    borderRadius: 24, 
+    overflow: "hidden", 
+    marginRight: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 3 },
+      web: {
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      }
+    }),
+  },
   promoImg: { width: "100%", height: "100%", position: "absolute" },
-  promoOverlay: { position: "absolute", left: 17, bottom: 16 },
-  promoText: { color: "#fff", fontSize: 19, fontWeight: "700", marginBottom: 7, maxWidth: 185 },
-  promoBtn: { backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 7, borderRadius: 13, marginTop: 2, alignSelf: "flex-start" },
-  serviceCard: { backgroundColor: "#fdf3f8", borderRadius: 16, padding: 18, alignItems: "center", minWidth: 114, elevation: 2 },
-  iconCircle: { backgroundColor: "#fff", width: 48, height: 48, justifyContent: "center", alignItems: "center", borderRadius: 15, marginBottom: 9, elevation: 1 },
-  serviceImg: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#eee" },
-  serviceName: { fontWeight: "700", fontSize: 15, marginBottom: 3 },
-  servicePrice: { color: "#FA4376", fontWeight: "700", fontSize: 13 },
-  galleryImg: { width: 110, height: 90, borderRadius: 12, backgroundColor: "#eee" },
-  reviewCard: { backgroundColor: "#FCE9F1", borderRadius: 16, flexDirection: "row", alignItems: "center", padding: 10, minWidth: 180 },
-  reviewAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 13 },
-  reviewName: { fontWeight: "bold", color: "#222", fontSize: 15 },
-  reviewComment: { color: "#555", fontSize: 13, marginTop: 4, maxWidth: 110 },
-  starRow: { flexDirection: "row", gap: 1 },
-  bookCta: { backgroundColor: "#FA4376", borderRadius: 23, paddingVertical: 16, alignItems: "center", marginHorizontal: 8, marginBottom: 35 }
+  promoOverlay: { 
+    position: "absolute", 
+    left: 20, 
+    bottom: 20,
+    gap: 10,
+  },
+  promoText: { 
+    color: "#fff", 
+    fontSize: 18, 
+    fontWeight: "800", 
+    maxWidth: 200,
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  promoBtn: { 
+    backgroundColor: "rgba(255,255,255,0.95)", 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 16,
+    alignSelf: "flex-start",
+  },
+  promoBtnText: {
+    color: theme.colors.primary,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  serviceCard: { 
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+    width: 140,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 2 },
+      web: {
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      }
+    }),
+  },
+  serviceImg: { 
+    width: "100%", 
+    height: 120,
+    backgroundColor: "#f3f4f6",
+  },
+  serviceImgPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  serviceInfo: {
+    padding: 12,
+    gap: 4,
+  },
+  serviceName: { 
+    fontWeight: "800", 
+    fontSize: 14,
+    color: "#1f1f1f",
+    lineHeight: 18,
+  },
+  servicePrice: { 
+    color: theme.colors.primary, 
+    fontWeight: "700", 
+    fontSize: 12,
+  },
+  galleryImg: { 
+    width: 140, 
+    height: 100, 
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 2 },
+      web: {
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+      }
+    }),
+  },
+  reviewCard: { 
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    minWidth: 220,
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 2 },
+      web: {
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+      }
+    }),
+  },
+  reviewAvatar: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24,
+  },
+  reviewName: { 
+    fontWeight: "800", 
+    color: "#1f1f1f", 
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  reviewComment: { 
+    color: "#6b7280", 
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  starRow: { 
+    flexDirection: "row", 
+    gap: 2 
+  },
+  bookCta: { 
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 40,
+    marginTop: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.colors.primary,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 4 },
+      web: {
+        boxShadow: `0 4px 12px ${theme.colors.primary}40`,
+      }
+    }),
+  },
+  bookCtaText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 16,
+  },
 });
