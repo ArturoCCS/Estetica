@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
+import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -49,61 +49,6 @@ async function sendPushNotification(tokens: string[], title: string, body: strin
     }
   }
 }
-
-// ==================== NOTIFICATIONS ====================
-
-export const notifyOnAppointmentCreate = onDocumentCreated("appointments/{id}", async (event) => {
-  const data = event.data?.data() as any || null;
-  if (!data) return;
-  
-  // Notify admin of new appointment request
-  const adminTokens = await getAdminTokens();
-  if (adminTokens.length === 0) return;
-
-  await sendPushNotification(
-    adminTokens,
-    "Nueva cita pendiente",
-    `${data.serviceName} • ${new Date(data.requestedStartAt).toLocaleString("es-MX")}`,
-    { type: "appointment_pending", appointmentId: event.params.id }
-  );
-});
-
-export const notifyOnAppointmentUpdate = onDocumentUpdated("appointments/{id}", async (event) => {
-  const before = event.data?.before?.data() as any;
-  const after = event.data?.after?.data() as any;
-  if (!before || !after || before.status === after.status) return; // only on status change
-
-  const expo = new Expo();
-  const toUser = await getUserToken(after.userId);
-  if (!toUser) return;
-
-  let title = "";
-  let body = "";
-  let type = "";
-  
-  if (after.status === "awaiting_payment") {
-    title = "Cita aprobada - Pago requerido";
-    body = `${after.serviceName} aprobado. Paga $${after.depositAmount} MXN antes de ${new Date(after.paymentDueAt).toLocaleString("es-MX")}`;
-    type = "appointment_awaiting_payment";
-  } else if (after.status === "confirmed") {
-    title = "Cita confirmada";
-    const dateStr = after.finalStartAt ? new Date(after.finalStartAt).toLocaleString("es-MX") : new Date(after.requestedStartAt).toLocaleString("es-MX");
-    body = `${after.serviceName} confirmado para ${dateStr}`;
-    type = "appointment_confirmed";
-  } else if (after.status === "cancelled") {
-    title = "Cita cancelada";
-    body = `${after.serviceName} ha sido cancelado.`;
-    type = "appointment_cancelled";
-  } else if (after.status === "expired") {
-    title = "Cita expirada";
-    body = `${after.serviceName} expiró por falta de pago.`;
-    type = "appointment_expired";
-  } else {
-    return;
-  }
-
-  await sendPushNotification([toUser], title, body, { type, appointmentId: event.params.id });
-});
 
 // ==================== MERCADO PAGO ====================
 
@@ -160,18 +105,19 @@ export const createPaymentPreference = onRequest(async (req, res) => {
     const preferenceData = {
       items: [
         {
+          id: `deposit-${appointmentId}`,                 // ✅ requerido por typings
           title: `Depósito: ${appointment.serviceName}`,
           quantity: 1,
-          unit_price: appointment.depositAmount,
+          unit_price: Number(appointment.depositAmount),  // ✅ number, no any
           currency_id: "MXN",
         },
       ],
-      external_reference: appointmentId,
+      external_reference: String(appointmentId),
       notification_url: process.env.MP_WEBHOOK_URL || "",
       back_urls: {
         success: process.env.MP_SUCCESS_URL || "",
         failure: process.env.MP_FAILURE_URL || "",
-        pending: process.env.MP_PENDING_URL || "",
+        pending: process.env.MP_FAILURE_URL || "",
       },
       auto_return: "approved" as const,
     };
@@ -283,4 +229,129 @@ export const expireUnpaidAppointments = onSchedule("every 1 hour", async () => {
     await batch.commit();
     console.log(`Expired ${snap.size} appointments`);
   }
+});
+
+
+// ==================== INBOX NOTIFICATIONS (FIRESTORE) ====================
+type InboxNotification = {
+  title: string;
+  body: string;
+  type: string;
+  data?: any;
+};
+
+async function addInboxNotification(uid: string, n: InboxNotification) {
+  if (!uid) return;
+  await db.collection("users").doc(uid).collection("notifications").add({
+    title: n.title,
+    body: n.body,
+    type: n.type,
+    data: n.data ?? null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    readAt: null,
+  });
+}
+
+function getAdminEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS || process.env.EXPO_PUBLIC_ADMIN_EMAILS || "";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function getAdminUserIds(): Promise<string[]> {
+  const adminEmails = new Set(getAdminEmails());
+  const snap = await db.collection("users").get();
+  const ids: string[] = [];
+  snap.forEach((doc) => {
+    const d = doc.data() as any;
+    const email = String(d.email || "").toLowerCase();
+    const isAdmin = d.role === "admin" || (adminEmails.size > 0 && adminEmails.has(email));
+    if (isAdmin) ids.push(doc.id);
+  });
+  return ids;
+}
+
+async function addInboxNotificationToAdmins(n: InboxNotification) {
+  const adminIds = await getAdminUserIds();
+  await Promise.all(adminIds.map((uid) => addInboxNotification(uid, n)));
+}
+
+// ==================== REEMPLAZA TUS TRIGGERS POR ESTOS ====================
+
+export const notifyOnAppointmentCreate = onDocumentCreated("appointments/{id}", async (event) => {
+  const data = (event.data?.data() as any) || null;
+  if (!data) return;
+
+  const appointmentId = event.params.id;
+
+  const title = "Nueva cita pendiente";
+  const body = `${data.serviceName} • ${new Date(data.requestedStartAt).toLocaleString("es-MX")}`;
+
+  // ✅ 1) Inbox admins (persistente)
+  await addInboxNotificationToAdmins({
+    title,
+    body,
+    type: "appointment_pending",
+    data: { appointmentId },
+  });
+
+  // ✅ 2) Push admins (tu lógica actual)
+  const adminTokens = await getAdminTokens();
+  if (adminTokens.length === 0) return;
+
+  await sendPushNotification(adminTokens, title, body, {
+    type: "appointment_pending",
+    appointmentId,
+  });
+});
+
+export const notifyOnAppointmentUpdate = onDocumentUpdated("appointments/{id}", async (event) => {
+  const before = event.data?.before?.data() as any;
+  const after = event.data?.after?.data() as any;
+  if (!before || !after || before.status === after.status) return;
+
+  const appointmentId = event.params.id;
+
+  let title = "";
+  let body = "";
+  let type = "";
+
+  if (after.status === "awaiting_payment") {
+    title = "Cita aprobada - Pago requerido";
+    body = `${after.serviceName} aprobado. Paga $${after.depositAmount} MXN antes de ${new Date(after.paymentDueAt).toLocaleString("es-MX")}`;
+    type = "appointment_awaiting_payment";
+  } else if (after.status === "confirmed") {
+    title = "Cita confirmada";
+    const dateStr = after.finalStartAt
+      ? new Date(after.finalStartAt).toLocaleString("es-MX")
+      : new Date(after.requestedStartAt).toLocaleString("es-MX");
+    body = `${after.serviceName} confirmado para ${dateStr}`;
+    type = "appointment_confirmed";
+  } else if (after.status === "cancelled") {
+    title = "Cita cancelada";
+    body = `${after.serviceName} ha sido cancelado.`;
+    type = "appointment_cancelled";
+  } else if (after.status === "expired") {
+    title = "Cita expirada";
+    body = `${after.serviceName} expiró por falta de pago.`;
+    type = "appointment_expired";
+  } else {
+    return;
+  }
+
+  // ✅ 1) Inbox usuario (persistente)
+  await addInboxNotification(after.userId, {
+    title,
+    body,
+    type,
+    data: { appointmentId },
+  });
+
+  // ✅ 2) Push usuario
+  const toUser = await getUserToken(after.userId);
+  if (!toUser) return;
+
+  await sendPushNotification([toUser], title, body, { type, appointmentId });
 });

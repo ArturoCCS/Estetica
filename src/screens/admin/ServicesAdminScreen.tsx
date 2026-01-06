@@ -61,7 +61,8 @@ export function ServicesAdminScreen() {
           durationMin: `${editing.durationMin ?? ""}`,
           durationMax: `${editing.durationMax ?? ""}`,
           price: editing.price ? `${editing.price}` : "",
-          imageUrl: editing.imageUrl || ""
+          imageUrl: editing.imageUrl || "",
+          heroImageUrl: editing.imageUrl || ""
         }}
         serviceId={editing.id}
         onDone={() => setEditing(null)}

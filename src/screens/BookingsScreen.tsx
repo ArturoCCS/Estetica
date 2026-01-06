@@ -1,19 +1,25 @@
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
-import { db } from "../lib/firebase";
-import { useAuth } from "../providers/AuthProvider";
-import { theme } from "../theme/theme";
-import { Appointment } from "../types/domain";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { usePaymentHandler } from "../hooks/usePaymentHandler";
+import { db } from "../lib/firebase";
+import { RootStackParamList } from "../navigation/types";
+import { useAuth } from "../providers/AuthProvider";
+import { theme } from "../theme/theme";
+import { Appointment } from "../types/domain";
+
 
 export function BookingsScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const { handlePayDeposit, paymentLoading } = usePaymentHandler();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +70,8 @@ export function BookingsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Mis Citas</Text>
+      
+      <Button title="Ver mi agenda" onPress={() => navigation.navigate("Calendar")} />
       {loading ? (
         <ActivityIndicator style={{ marginTop: 30 }} color={theme.colors.primaryDark} />
       ) : items.length === 0 ? (

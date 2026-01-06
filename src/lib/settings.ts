@@ -1,5 +1,5 @@
 import { doc, onSnapshot } from "firebase/firestore";
-import { GlobalSettings } from "../theme/types/settings";
+import { GlobalSettings } from "../types/settings";
 import { db } from "./firebase";
 
 export function subscribeGlobalSettings(

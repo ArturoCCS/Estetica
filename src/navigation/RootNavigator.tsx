@@ -10,12 +10,15 @@ import { PromosAdminScreen } from "../screens/admin/PromosAdminScreen";
 import { ServicesAdminScreen } from "../screens/admin/ServicesAdminScreen";
 import { SettingsAdminScreen } from "../screens/admin/SettingsAdminScreen";
 import { BookServiceScreen } from "../screens/BookServiceScreen";
+import { CalendarScreen } from "../screens/CalendarScreen";
 import { LoginScreen } from "../screens/LoginScreen";
+import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PromoRouletteScreen } from "../screens/PromoRouletteScreen";
 import { ServiceDetailScreen } from "../screens/ServiceDetailScreen";
 import { SignupScreen } from "../screens/SignupScreen";
 import { TabNavigator } from "./TabNavigator";
 import { RootStackParamList } from "./types";
+
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -45,6 +48,10 @@ export function RootNavigator() {
           <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
           {/* Registra SettingsAdmin en el Root Stack */}
           <Stack.Screen name="SettingsAdmin" component={SettingsAdminScreen} />
+          
+          <Stack.Screen name="Calendar" component={CalendarScreen} />
+          
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       )}
     </Stack.Navigator>
