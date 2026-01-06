@@ -195,7 +195,7 @@ export function useDerivedNotifications(
             id: apt.id,
             type: "appointment_pending",
             title: "Nueva cita solicitada",
-            message: `${apt.serviceName} • ${new Date(apt.requestedStartAt).toLocaleDateString("es-MX")}`,
+            message: `${apt.serviceName} • ${new Date(parseToMillis(apt.requestedStartAt)).toLocaleDateString("es-MX")}`,
             timestamp: parseToMillis(apt.createdAt),
             appointment: apt,
           });

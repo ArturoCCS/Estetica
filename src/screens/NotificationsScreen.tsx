@@ -78,13 +78,13 @@ export function NotificationsScreen() {
   };
 
   const renderNotification = ({ item }: { item: DerivedNotification }) => {
-    const isUnread = !isAdmin; // For users, items in this list are unread (by definition)
+    const shouldShowAsUnread = !isAdmin; // For users, items in this list are considered unread
     
     return (
       <Pressable
         style={({ pressed }) => [
           styles.notificationItem,
-          isUnread && styles.notificationItemUnread,
+          shouldShowAsUnread && styles.notificationItemUnread,
           pressed && styles.notificationItemPressed,
         ]}
         onPress={() => handleNotificationPress(item)}
