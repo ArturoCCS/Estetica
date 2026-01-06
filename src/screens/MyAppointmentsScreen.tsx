@@ -1,19 +1,19 @@
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { db } from "../lib/firebase";
 import { useAuth } from "../providers/AuthProvider";
 import { theme } from "../theme/theme";
 import { Appointment } from "../types/domain";
+import { usePaymentHandler } from "../hooks/usePaymentHandler";
 
 export function MyAppointmentsScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const { handlePayDeposit, paymentLoading } = usePaymentHandler();
 
   useEffect(() => {
     if (!user) return;
@@ -29,50 +29,6 @@ export function MyAppointmentsScreen() {
     });
     return unsub;
   }, [user]);
-
-  const handlePayDeposit = async (appointmentId: string) => {
-    try {
-      setPaymentLoading(appointmentId);
-      
-      // Call Cloud Function to create preference
-      const functionUrl = process.env.EXPO_PUBLIC_CREATE_PAYMENT_URL || "";
-      if (!functionUrl) {
-        Alert.alert("Error", "Payment function URL not configured");
-        setPaymentLoading(null);
-        return;
-      }
-
-      const response = await fetch(functionUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create payment");
-      }
-
-      const data = await response.json();
-      const initPoint = data.sandboxInitPoint || data.initPoint;
-
-      if (!initPoint) {
-        throw new Error("No init_point returned from payment service");
-      }
-
-      // Open Mercado Pago checkout in browser
-      await WebBrowser.openBrowserAsync(initPoint);
-      
-      Alert.alert(
-        "Pago iniciado",
-        "Una vez completado el pago, tu cita será confirmada automáticamente."
-      );
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "No se pudo iniciar el pago");
-    } finally {
-      setPaymentLoading(null);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {

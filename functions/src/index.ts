@@ -110,7 +110,7 @@ export const notifyOnAppointmentUpdate = onDocumentUpdated("appointments/{id}", 
 function getMPClient() {
   const accessToken = process.env.MP_ACCESS_TOKEN;
   if (!accessToken) {
-    throw new Error("MP_ACCESS_TOKEN not configured");
+    throw new Error("MP_ACCESS_TOKEN environment variable not configured. Please set it in functions/.env file.");
   }
   return new MercadoPagoConfig({ accessToken });
 }
@@ -257,7 +257,7 @@ export const mercadoPagoWebhook = onRequest(async (req, res) => {
 
 // ==================== SCHEDULED TASKS ====================
 
-export const expireUnpaidAppointments = onSchedule("every 1 hours", async () => {
+export const expireUnpaidAppointments = onSchedule("every 1 hour", async () => {
   const now = admin.firestore.Timestamp.now();
   
   // Find appointments that are awaiting_payment and past paymentDueAt

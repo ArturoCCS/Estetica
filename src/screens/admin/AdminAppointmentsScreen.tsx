@@ -44,16 +44,13 @@ export function AdminAppointmentsScreen() {
   });
 
   useEffect(() => {
-    let q;
-    if (selectedStatus === "all") {
-      q = query(collection(db, "appointments"), orderBy("requestedStartAt", "desc"));
-    } else {
-      q = query(
-        collection(db, "appointments"),
-        where("status", "==", selectedStatus),
-        orderBy("requestedStartAt", "desc")
-      );
-    }
+    const q = selectedStatus === "all" 
+      ? query(collection(db, "appointments"), orderBy("requestedStartAt", "desc"))
+      : query(
+          collection(db, "appointments"),
+          where("status", "==", selectedStatus),
+          orderBy("requestedStartAt", "desc")
+        );
 
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
