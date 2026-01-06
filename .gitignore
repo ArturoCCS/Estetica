@@ -42,3 +42,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# functions
+/functions/lib
+/functions/node_modules
