@@ -228,6 +228,66 @@ In Firestore, ensure `settings/global` has:
 
 **Note**: Notifications only work on physical devices or proper simulators with Expo Go app.
 
+### Test 8a: In-App Notifications Badge and Inbox
+
+**Objective**: Verify in-app notification system works without Cloud Functions
+
+**Steps - Admin Badge**:
+1. Login as admin
+2. Verify bell icon on home screen
+3. Have a regular user create an appointment request
+4. Observe admin badge update in real-time (should show "1")
+5. Create another appointment request → badge should show "2"
+6. Tap bell icon → navigate to Notifications screen
+7. Verify notifications list shows "Nueva cita solicitada" items
+8. Tap a notification → should navigate to AdminAppointments
+9. Approve one appointment → badge should decrease to "1"
+10. Approve all pending → badge should show "0"
+
+**Expected Results - Admin**:
+- ✅ Badge shows count of appointments with status="requested"
+- ✅ Badge updates instantly without refresh
+- ✅ Badge never resets (always shows pending count)
+- ✅ Notifications screen shows all pending requests
+- ✅ Tapping notification navigates to AdminAppointments
+
+**Steps - User Badge**:
+1. Login as regular user
+2. Verify bell icon on home screen (initially no badge)
+3. Admin approves user's appointment
+4. Observe user badge update in real-time (should show "1")
+5. Admin cancels another appointment → badge should show "2"
+6. Tap bell icon → navigate to Notifications screen
+7. Badge should reset to "0" immediately
+8. Verify notifications show status changes (confirmed, cancelled, etc.)
+9. Tap a notification → should navigate to Bookings screen
+
+**Expected Results - User**:
+- ✅ Badge shows count where updatedAt > lastSeenNotificationsAt
+- ✅ Badge updates instantly when admin changes appointment
+- ✅ Badge resets to 0 when Notifications screen opens
+- ✅ Notifications show meaningful status messages
+- ✅ Tapping notification navigates to Bookings
+- ✅ Old notifications don't reappear after being marked read
+
+**Steps - Edge Cases**:
+1. Test with user who has never opened notifications (no lastSeenNotificationsAt)
+   - Should count all appointments with updatedAt
+2. Test with appointments that only have createdAt (no updatedAt)
+   - Should use createdAt as fallback
+3. Test on web browser
+   - Should parse dates correctly, no console errors
+4. Test with 100+ notifications
+   - Badge should show "99+"
+
+**Expected Results - Edge Cases**:
+- ✅ Works for first-time users (no lastSeen timestamp)
+- ✅ Handles appointments without updatedAt gracefully
+- ✅ No runtime errors on web platform
+- ✅ Badge displays "99+" for large counts
+
+**Note**: This feature works WITHOUT Cloud Functions and stays in Firebase free tier.
+
 ### Test 9: Business Hours Validation
 
 **Objective**: Verify bookings respect business hours
@@ -310,6 +370,11 @@ All tests passed when:
 - [ ] Unpaid appointments expire after 24 hours
 - [ ] Overlapping bookings are prevented
 - [ ] All push notifications are delivered
+- [ ] **In-app notification badges update in real-time**
+- [ ] **User badge resets after opening notifications**
+- [ ] **Admin badge reflects current pending appointments**
+- [ ] **Notification inbox shows correct items for role**
+- [ ] **Tapping notifications navigates to correct screen**
 - [ ] Business hours are respected
 - [ ] Settings can be updated by admin
 
