@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
 import { theme } from "../theme/theme";
 
 type Props = {
@@ -26,6 +26,7 @@ export function Button({
       disabled={isDisabled}
       style={[
         styles.base,
+        Platform.OS === "web" && styles.webBase,
         variant === "primary" ? styles.primary : styles.secondary,
         isDisabled && { opacity: 0.6 },
         style
@@ -34,7 +35,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color="white" />
       ) : (
-        <Text style={styles.text}>{title}</Text>
+        <Text style={[styles.text, Platform.OS === "web" && styles.webText]}>{title}</Text>
       )}
     </Pressable>
   );
@@ -48,7 +49,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  webBase: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   primary: { backgroundColor: theme.colors.primary },
   secondary: { backgroundColor: "#111827" },
-  text: { color: "white", fontWeight: "800" }
+  text: { color: "white", fontWeight: "800" },
+  webText: { fontSize: 15 }
 });

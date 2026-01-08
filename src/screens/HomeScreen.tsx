@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { addDoc, collection, getDocs, onSnapshot, orderBy, query } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import {
   Alert,
@@ -16,7 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { NotificationBell } from "../components/NotificationBell";
+import { WebCarouselArrows } from "../components/WebCarouselArrows";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types"; // Importa desde types.ts
 import { useAuth } from "../providers/AuthProvider";
@@ -64,6 +64,9 @@ export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>(); // TYPED!
   const { user } = useAuth();
   const { badgeCount } = useNotificationBadge();
+  
+  // Ref for promo carousel scrolling
+  const promoScrollRef = useRef<ScrollView>(null);
 
   // Servicios
   useEffect(() => {
@@ -150,7 +153,7 @@ export function HomeScreen() {
         createdAt: new Date(),
       });
       Alert.alert("¡Cupón agregado!", "Puedes verlo en tu Perfil.");
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "No se pudo guardar tu cupón.");
     }
   }
@@ -172,6 +175,21 @@ export function HomeScreen() {
     }
     Alert.alert("Promoción", promo.text);
   }
+  
+  // Carousel scroll handlers for web
+  const scrollPromoLeft = () => {
+    if (promoScrollRef.current) {
+      const cardWidth = windowWidth * 0.9 + 12; // card width + margin
+      promoScrollRef.current.scrollTo({ x: -cardWidth, y: 0, animated: true });
+    }
+  };
+  
+  const scrollPromoRight = () => {
+    if (promoScrollRef.current) {
+      const cardWidth = windowWidth * 0.9 + 12; // card width + margin
+      promoScrollRef.current.scrollTo({ x: cardWidth, y: 0, animated: true });
+    }
+  };
 
   const containerStyle: StyleProp<ViewStyle> = isWeb ? { maxWidth: 1200, alignSelf: "center" as const } : undefined;
 
@@ -179,7 +197,7 @@ export function HomeScreen() {
     <ScrollView 
       style={styles.container} 
       contentContainerStyle={containerStyle}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator={Platform.OS === "web"}
     >
       {/* Header */}
       <View style={styles.headerRow}>
@@ -208,26 +226,35 @@ export function HomeScreen() {
       ) : promos.filter(canShowPromo).length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Promociones especiales</Text>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            style={{ marginTop: 8, marginBottom: 24 }}>
-            {promos.filter(canShowPromo).map(promo => (
-              <View key={promo.id} style={styles.promoCard}>
-                <Image source={{ uri: promo.imageUrl }} style={styles.promoImg} />
-                <View style={styles.promoOverlay}>
-                  <Text style={styles.promoText}>{promo.text}</Text>
-                  <Pressable
-                    style={styles.promoBtn}
-                    onPress={() => handlePromoAction(promo)}
-                  >
-                    <Text style={styles.promoBtnText}>{promo.cta}</Text>
-                  </Pressable>
+          <View style={{ position: "relative" }}>
+            <ScrollView
+              ref={promoScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 8, marginBottom: 24 }}>
+              {promos.filter(canShowPromo).map(promo => (
+                <View key={promo.id} style={styles.promoCard}>
+                  <Image source={{ uri: promo.imageUrl }} style={styles.promoImg} />
+                  <View style={styles.promoOverlay}>
+                    <Text style={styles.promoText}>{promo.text}</Text>
+                    <Pressable
+                      style={styles.promoBtn}
+                      onPress={() => handlePromoAction(promo)}
+                    >
+                      <Text style={styles.promoBtnText}>{promo.cta}</Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+            <WebCarouselArrows 
+              onPrevious={scrollPromoLeft}
+              onNext={scrollPromoRight}
+              showPrevious={promos.filter(canShowPromo).length > 1}
+              showNext={promos.filter(canShowPromo).length > 1}
+            />
+          </View>
         </>
       )}
 
@@ -380,7 +407,14 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: "#fafafa", 
     paddingTop: 16, 
-    paddingHorizontal: 16 
+    paddingHorizontal: 16,
+    ...Platform.select({
+      web: {
+        // @ts-ignore - web-only CSS properties
+        scrollbarWidth: "thin",
+        scrollbarColor: "#DB277733 transparent",
+      } as any
+    })
   },
   headerRow: { 
     flexDirection: "row", 
