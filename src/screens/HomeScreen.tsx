@@ -67,6 +67,7 @@ export function HomeScreen() {
   
   // Ref for promo carousel scrolling
   const promoScrollRef = useRef<ScrollView>(null);
+  const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
 
   // Servicios
   useEffect(() => {
@@ -177,17 +178,23 @@ export function HomeScreen() {
   }
   
   // Carousel scroll handlers for web
+  const visiblePromos = promos.filter(canShowPromo);
+  
   const scrollPromoLeft = () => {
-    if (promoScrollRef.current) {
+    if (promoScrollRef.current && currentPromoIndex > 0) {
       const cardWidth = windowWidth * 0.9 + 12; // card width + margin
-      promoScrollRef.current.scrollTo({ x: -cardWidth, y: 0, animated: true });
+      const newIndex = currentPromoIndex - 1;
+      setCurrentPromoIndex(newIndex);
+      promoScrollRef.current.scrollTo({ x: cardWidth * newIndex, y: 0, animated: true });
     }
   };
   
   const scrollPromoRight = () => {
-    if (promoScrollRef.current) {
+    if (promoScrollRef.current && currentPromoIndex < visiblePromos.length - 1) {
       const cardWidth = windowWidth * 0.9 + 12; // card width + margin
-      promoScrollRef.current.scrollTo({ x: cardWidth, y: 0, animated: true });
+      const newIndex = currentPromoIndex + 1;
+      setCurrentPromoIndex(newIndex);
+      promoScrollRef.current.scrollTo({ x: cardWidth * newIndex, y: 0, animated: true });
     }
   };
 
@@ -251,8 +258,8 @@ export function HomeScreen() {
             <WebCarouselArrows 
               onPrevious={scrollPromoLeft}
               onNext={scrollPromoRight}
-              showPrevious={promos.filter(canShowPromo).length > 1}
-              showNext={promos.filter(canShowPromo).length > 1}
+              showPrevious={visiblePromos.length > 1 && currentPromoIndex > 0}
+              showNext={visiblePromos.length > 1 && currentPromoIndex < visiblePromos.length - 1}
             />
           </View>
         </>
