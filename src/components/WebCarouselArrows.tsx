@@ -49,10 +49,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
-    // @ts-ignore - web-only properties
-    cursor: "pointer",
-    backdropFilter: "blur(8px)",
-  } as any,
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        backdropFilter: "blur(8px)",
+      } as any,
+    }),
+  },
   leftArrow: {
     left: 12,
   },

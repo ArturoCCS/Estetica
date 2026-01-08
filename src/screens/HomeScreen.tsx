@@ -179,22 +179,21 @@ export function HomeScreen() {
   
   // Carousel scroll handlers for web
   const visiblePromos = promos.filter(canShowPromo);
+  const promoCardWidth = windowWidth * 0.9 + 12; // card width + margin
   
   const scrollPromoLeft = () => {
     if (promoScrollRef.current && currentPromoIndex > 0) {
-      const cardWidth = windowWidth * 0.9 + 12; // card width + margin
       const newIndex = currentPromoIndex - 1;
       setCurrentPromoIndex(newIndex);
-      promoScrollRef.current.scrollTo({ x: cardWidth * newIndex, y: 0, animated: true });
+      promoScrollRef.current.scrollTo({ x: promoCardWidth * newIndex, y: 0, animated: true });
     }
   };
   
   const scrollPromoRight = () => {
     if (promoScrollRef.current && currentPromoIndex < visiblePromos.length - 1) {
-      const cardWidth = windowWidth * 0.9 + 12; // card width + margin
       const newIndex = currentPromoIndex + 1;
       setCurrentPromoIndex(newIndex);
-      promoScrollRef.current.scrollTo({ x: cardWidth * newIndex, y: 0, animated: true });
+      promoScrollRef.current.scrollTo({ x: promoCardWidth * newIndex, y: 0, animated: true });
     }
   };
 
