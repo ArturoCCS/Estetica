@@ -52,8 +52,7 @@ const styles = StyleSheet.create({
     // @ts-ignore - web-only properties
     cursor: "pointer",
     backdropFilter: "blur(8px)",
-    transition: "all 0.2s ease",
-  },
+  } as any,
   leftArrow: {
     left: 12,
   },
