@@ -48,6 +48,8 @@ export function RootNavigator() {
           <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
           <Stack.Screen name="SettingsAdmin" component={SettingsAdminScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Calendar" component={CalendarScreen} />
+          
         </>
       )}
     </Stack.Navigator>
@@ -55,3 +57,4 @@ export function RootNavigator() {
 }
 
 export { RootStackParamList };
+
