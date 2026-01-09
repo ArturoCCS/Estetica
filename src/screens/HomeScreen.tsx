@@ -20,7 +20,7 @@ import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../providers/AuthProvider";
 import { useNotificationBadge } from "../providers/NotificationBadgeProvider";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 
 const windowWidth = Dimensions.get("window").width;
 const isWeb = Platform.OS === "web";
@@ -63,6 +63,7 @@ export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { badgeCount } = useNotificationBadge();
+  const { theme } = useTheme();
 
   // ===== Promo carousel: dots + autoplay =====
   const promoListRef = useRef<FlatList<Promo>>(null);
@@ -198,22 +199,44 @@ export function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        paddingTop: 16,
+        paddingHorizontal: 16,
+      }}
       contentContainerStyle={containerStyle}
       showsVerticalScrollIndicator={Platform.OS === "web"}
     >
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>Hola 👋</Text>
-          <Text style={styles.cityLabel}>Encuentra tu belleza perfecta</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: theme.colors.text }}>
+            Hola 👋
+          </Text>
+          <Text style={{ fontSize: 14, color: theme.colors.textMuted, marginTop: 2 }}>
+            Encuentra tu belleza perfecta
+          </Text>
         </View>
 
         <Pressable onPress={() => navigation.navigate("Notifications")} style={styles.bellContainer} hitSlop={10}>
-          <Ionicons name="notifications-outline" size={24} color="#1f1f1f" />
+          <Ionicons name="notifications-outline" size={24} color={theme.colors.text} />
           {badgeCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badgeCount > 99 ? "99+" : badgeCount}</Text>
+            <View style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              backgroundColor: theme.colors.accent,
+              borderRadius: 10,
+              minWidth: 20,
+              height: 20,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 4,
+            }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "800" }}>
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </Text>
             </View>
           )}
         </Pressable>
@@ -224,7 +247,15 @@ export function HomeScreen() {
         <SkeletonPromoCarousel />
       ) : visiblePromos.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Promociones especiales</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Promociones especiales
+          </Text>
 
           <View onLayout={(e) => setPromoViewportW(e.nativeEvent.layout.width)} style={styles.promoCarouselWrap}>
             {/* Espera a medir para que paging/offset funcione perfecto */}
@@ -292,7 +323,15 @@ export function HomeScreen() {
       ) : null}
 
       {/* SERVICIOS */}
-      <Text style={styles.sectionTitle}>Nuestros servicios</Text>
+      <Text style={{ 
+        fontSize: 18, 
+        fontWeight: "900", 
+        color: theme.colors.text,
+        marginBottom: 4,
+        letterSpacing: -0.3,
+      }}>
+        Nuestros servicios
+      </Text>
       {loadingServices ? (
         <SkeletonServices />
       ) : services.length > 0 ? (
@@ -330,7 +369,15 @@ export function HomeScreen() {
       {/* GALERÍA */}
       {gallery.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Galería</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Galería
+          </Text>
           {loadingGallery ? (
             <SkeletonGallery />
           ) : (
@@ -349,7 +396,15 @@ export function HomeScreen() {
       {/* TESTIMONIOS */}
       {reviews.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Clientes felices</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Clientes felices
+          </Text>
           {loadingReviews ? (
             <SkeletonReviews />
           ) : (

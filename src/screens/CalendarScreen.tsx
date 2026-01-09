@@ -196,10 +196,3 @@ export function CalendarScreen() {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  card: {
-    borderRadius: 22,
-    overflow: "hidden",
-  },
-});
