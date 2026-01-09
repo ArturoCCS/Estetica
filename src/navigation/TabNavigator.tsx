@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { useAuth } from "../providers/AuthProvider";
+import { useTheme } from "../providers/ThemeProvider";
 import { AdminScreen } from "../screens/admin/AdminScreen";
 import { BookingsScreen } from "../screens/BookingsScreen";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -13,6 +14,7 @@ const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 export function TabNavigator() {
   const { isAdmin } = useAuth();
+  const { theme } = useTheme();
 
   return (
     <Tab.Navigator
@@ -28,8 +30,12 @@ export function TabNavigator() {
           if (route.name === "Admin") iconName = "construct";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "#FA4376",
-        tabBarInactiveTintColor: "#888",
+        tabBarActiveTintColor: theme.colors.tabIconActive,
+        tabBarInactiveTintColor: theme.colors.tabIconInactive,
+        tabBarStyle: {
+          backgroundColor: theme.colors.tabBarBackground,
+          borderTopColor: theme.colors.tabBarBorder,
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

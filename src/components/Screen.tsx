@@ -1,6 +1,7 @@
 import React from "react";
 import { Platform, ScrollView, StyleProp, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../providers/ThemeProvider";
 
 type Props = {
   children: React.ReactNode;
@@ -11,25 +12,33 @@ type Props = {
 
 let injectedWebScrollbarCSS = false;
 
-function injectWebScrollbarCSS() {
+function injectWebScrollbarCSS(scrollbarTrack: string, scrollbarThumb: string, scrollbarThumbHover: string) {
   if (Platform.OS !== "web") return;
-  if (injectedWebScrollbarCSS) return;
+  if (injectedWebScrollbarCSS) {
+    // Update existing styles
+    const existingStyle = document.querySelector('[data-estetica-scrollbar]');
+    if (existingStyle) {
+      existingStyle.remove();
+      injectedWebScrollbarCSS = false;
+    }
+  }
+  
   injectedWebScrollbarCSS = true;
 
   const css = `
-  /* Web scrollbar - más visible y limpio */
+  /* Web scrollbar - theme aware */
   ::-webkit-scrollbar { width: 14px; height: 14px; }
-  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); }
+  ::-webkit-scrollbar-track { background: ${scrollbarTrack}; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(17, 24, 39, 0.30);
+    background: ${scrollbarThumb};
     border-radius: 999px;
-    border: 4px solid rgba(0,0,0,0.03);
+    border: 4px solid ${scrollbarTrack};
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(17, 24, 39, 0.42); }
+  ::-webkit-scrollbar-thumb:hover { background: ${scrollbarThumbHover}; }
 
   /* Firefox */
-  * { scrollbar-width: auto; scrollbar-color: rgba(17,24,39,0.35) rgba(0,0,0,0.03); }
+  * { scrollbar-width: auto; scrollbar-color: ${scrollbarThumb} ${scrollbarTrack}; }
   `;
 
   if (typeof document !== "undefined") {
@@ -42,17 +51,22 @@ function injectWebScrollbarCSS() {
 
 export function Screen({ children, style, scroll = false, contentContainerStyle }: Props) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   React.useEffect(() => {
-    injectWebScrollbarCSS();
-  }, []);
+    injectWebScrollbarCSS(
+      theme.colors.scrollbarTrack,
+      theme.colors.scrollbarThumb,
+      theme.colors.scrollbarThumbHover
+    );
+  }, [theme]);
 
   const base: ViewStyle = {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.background,
     paddingTop: insets.top,
     paddingBottom: insets.bottom,
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.md,
   };
 
   if (scroll) {

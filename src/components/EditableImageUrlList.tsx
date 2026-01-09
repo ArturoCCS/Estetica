@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useTheme } from "../providers/ThemeProvider";
 
 type Props = {
   label?: string;
@@ -16,6 +17,7 @@ export function EditableImageUrlList({
   placeholder = "https://...",
 }: Props) {
   const [draft, setDraft] = useState("");
+  const { theme } = useTheme();
 
   const items = useMemo(() => value.filter(Boolean), [value]);
 
@@ -114,7 +116,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fa4376",
+    backgroundColor: "#E7DDC8",
   },
   empty: { color: "#7a7a7a", fontSize: 13 },
   item: {
