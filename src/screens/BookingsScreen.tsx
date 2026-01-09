@@ -9,7 +9,7 @@ import { usePaymentHandler } from "../hooks/usePaymentHandler";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../providers/AuthProvider";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 import { Appointment } from "../types/domain";
 
 
@@ -19,6 +19,7 @@ export function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const { handlePayDeposit, paymentLoading } = usePaymentHandler();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { theme } = useTheme();
 
 
   useEffect(() => {
@@ -68,14 +69,24 @@ export function BookingsScreen() {
   if (!user) return null;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Mis Citas</Text>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background, padding: 20 }}>
+      <Text style={{ 
+        fontWeight: "bold", 
+        fontSize: 24, 
+        marginBottom: 14, 
+        color: theme.colors.text, 
+        alignSelf: "center" 
+      }}>
+        Mis Citas
+      </Text>
       
       <Button title="Ver mi agenda" onPress={() => navigation.navigate("Calendar")} />
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 30 }} color={theme.colors.primaryDark} />
+        <ActivityIndicator style={{ marginTop: 30 }} color={theme.colors.accent} />
       ) : items.length === 0 ? (
-        <Text style={styles.empty}>No tienes citas aún.</Text>
+        <Text style={{ alignSelf: "center", marginTop: 60, color: theme.colors.textMuted, fontSize: 15 }}>
+          No tienes citas aún.
+        </Text>
       ) : (
         <FlatList
           data={items}
@@ -83,25 +94,35 @@ export function BookingsScreen() {
           renderItem={({ item }) => (
             <Card style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.serviceName}>{item.serviceName}</Text>
+                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.colors.text, flex: 1 }}>
+                  {item.serviceName}
+                </Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
                   <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
                 </View>
               </View>
               
-              <Text style={styles.dateText}>{formatDateTime(item)}</Text>
+              <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>
+                {formatDateTime(item)}
+              </Text>
               
               {item.depositAmount && (
-                <Text style={styles.priceText}>Depósito: ${item.depositAmount} MXN</Text>
+                <Text style={{ fontSize: 14, color: theme.colors.accent, fontWeight: "600" }}>
+                  Depósito: ${item.depositAmount} MXN
+                </Text>
               )}
               
               {item.paymentDueAt && item.status === "awaiting_payment" && (
-                <Text style={styles.warningText}>
+                <Text style={{ fontSize: 13, color: theme.colors.error, fontWeight: "600" }}>
                   Límite: {new Date(item.paymentDueAt).toLocaleString("es-MX")}
                 </Text>
               )}
               
-              {item.notes && <Text style={styles.notes}>Notas: {item.notes}</Text>}
+              {item.notes && (
+                <Text style={{ fontSize: 13, color: theme.colors.textMuted, fontStyle: "italic" }}>
+                  Notas: {item.notes}
+                </Text>
+              )}
               
               {item.status === "awaiting_payment" && (
                 <Button
@@ -120,16 +141,8 @@ export function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontWeight: "bold", fontSize: 24, marginBottom: 14, color: "#222", alignSelf: "center" },
-  empty: { alignSelf: "center", marginTop: 60, color: "#888", fontSize: 15 },
   card: { gap: 8 },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  serviceName: { fontWeight: "700", fontSize: 16, color: theme.colors.text, flex: 1 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { color: "#fff", fontSize: 11, fontWeight: "600" },
-  dateText: { fontSize: 14, color: "#555" },
-  priceText: { fontSize: 14, color: theme.colors.primary, fontWeight: "600" },
-  warningText: { fontSize: 13, color: "#FF6B6B", fontWeight: "600" },
-  notes: { fontSize: 13, color: "#777", fontStyle: "italic" },
 });
