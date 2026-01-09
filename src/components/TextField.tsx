@@ -1,6 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
-import { theme } from "../theme/theme";
+import { Text, TextInput, TextInputProps, View } from "react-native";
+import { useTheme } from "../providers/ThemeProvider";
 
 type Props = TextInputProps & {
   label: string;
@@ -8,28 +8,42 @@ type Props = TextInputProps & {
 };
 
 export function TextField({ label, error, style, ...props }: Props) {
+  const { theme } = useTheme();
+  
   return (
-    <View style={{ gap: 6 }}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={{ gap: theme.spacing.xs }}>
+      <Text style={{ 
+        fontWeight: "700", 
+        color: theme.colors.text,
+        fontSize: theme.typography.caption.fontSize,
+      }}>
+        {label}
+      </Text>
       <TextInput
         {...props}
-        style={[styles.input, style]}
-        placeholderTextColor="#9CA3AF"
+        style={[
+          {
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+            padding: 12,
+            backgroundColor: theme.colors.card,
+            color: theme.colors.text,
+            fontSize: theme.typography.body.fontSize,
+          },
+          style,
+        ]}
+        placeholderTextColor={theme.colors.textMuted}
       />
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && (
+        <Text style={{ 
+          color: theme.colors.error, 
+          fontWeight: "600",
+          fontSize: theme.typography.caption.fontSize,
+        }}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  label: { fontWeight: "700", color: theme.colors.text },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    padding: 12,
-    backgroundColor: theme.colors.card,
-    color: theme.colors.text
-  },
-  error: { color: theme.colors.danger, fontWeight: "600" }
-});

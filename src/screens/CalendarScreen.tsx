@@ -6,7 +6,7 @@ import { HeaderBack } from "../components/HeaderBack";
 import { Screen } from "../components/Screen";
 import { db } from "../lib/firebase";
 import { useAuth } from "../providers/AuthProvider";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 import { Appointment } from "../types/domain";
 
 function toJSDate(value: any): Date | null {
@@ -82,17 +82,17 @@ export function CalendarScreen() {
     for (const a of items) {
       const day = toDateKeySafe(getAppointmentDateValue(a));
       if (!day) continue;
-      marks[day] = { ...(marks[day] || {}), marked: true, dotColor: "#fa4376" };
+      marks[day] = { ...(marks[day] || {}), marked: true, dotColor: theme.colors.accent };
     }
 
     marks[selectedDay] = {
       ...(marks[selectedDay] || {}),
       selected: true,
-      selectedColor: "#fa4376",
+      selectedColor: theme.colors.accent,
     };
 
     return marks;
-  }, [items, selectedDay]);
+  }, [items, selectedDay, theme]);
 
   const dayAppointments = React.useMemo(() => {
     return items
@@ -120,25 +120,43 @@ export function CalendarScreen() {
     <Screen scroll>
       <HeaderBack title="Mi agenda" />
 
-      <View style={s.card}>
+      <View style={{
+        borderRadius: 22,
+        overflow: "hidden",
+        backgroundColor: theme.colors.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.border,
+        marginTop: 10,
+      }}>
         <Calendar
           onDayPress={(d) => setSelectedDay(d.dateString)}
           markedDates={markedDates}
           enableSwipeMonths
           theme={{
-            todayTextColor: "#fa4376",
-            arrowColor: "#fa4376",
-            selectedDayBackgroundColor: "#fa4376",
+            backgroundColor: theme.colors.background,
+            calendarBackground: theme.colors.card,
+            textSectionTitleColor: theme.colors.textSecondary,
+            selectedDayBackgroundColor: theme.colors.accent,
+            selectedDayTextColor: theme.colors.primary,
+            todayTextColor: theme.colors.accent,
+            dayTextColor: theme.colors.text,
+            textDisabledColor: theme.colors.textMuted,
+            dotColor: theme.colors.accent,
+            selectedDotColor: theme.colors.primary,
+            arrowColor: theme.colors.accent,
+            monthTextColor: theme.colors.text,
           }}
         />
       </View>
 
-      <Text style={s.sectionTitle}>Citas del día</Text>
+      <Text style={{ marginTop: 14, fontWeight: "900", fontSize: 16, color: theme.colors.text }}>
+        Citas del día
+      </Text>
 
       {loading ? (
-        <Text style={{ color: theme.colors.muted }}>Cargando…</Text>
+        <Text style={{ color: theme.colors.textMuted }}>Cargando…</Text>
       ) : dayAppointments.length === 0 ? (
-        <Text style={{ color: "#888" }}>No tienes citas este día.</Text>
+        <Text style={{ color: theme.colors.textMuted }}>No tienes citas este día.</Text>
       ) : (
         <FlatList
           data={dayAppointments}
@@ -148,10 +166,28 @@ export function CalendarScreen() {
           renderItem={({ item }) => {
             const d = toJSDate(getAppointmentDateValue(item));
             return (
-              <View style={s.item}>
-                <Text style={s.itemTitle}>{(item as any).serviceName ?? "Servicio"}</Text>
-                <Text style={s.itemSub}>{d ? d.toLocaleString("es-MX") : "Fecha inválida"}</Text>
-                <Text style={s.badge}>{(item as any).status ?? ""}</Text>
+              <View style={{
+                borderRadius: theme.radius.lg,
+                padding: 14,
+                backgroundColor: theme.colors.card,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: theme.colors.border,
+                gap: 4,
+              }}>
+                <Text style={{ fontWeight: "900", color: theme.colors.text }}>
+                  {(item as any).serviceName ?? "Servicio"}
+                </Text>
+                <Text style={{ color: theme.colors.textSecondary }}>
+                  {d ? d.toLocaleString("es-MX") : "Fecha inválida"}
+                </Text>
+                <Text style={{ 
+                  alignSelf: "flex-start", 
+                  marginTop: 6, 
+                  color: theme.colors.accent, 
+                  fontWeight: "800" 
+                }}>
+                  {(item as any).status ?? ""}
+                </Text>
               </View>
             );
           }}
@@ -160,26 +196,3 @@ export function CalendarScreen() {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  card: {
-    borderRadius: 22,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.86)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
-    marginTop: 10,
-  },
-  sectionTitle: { marginTop: 14, fontWeight: "900", fontSize: 16, color: "#111" },
-  item: {
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: "rgba(255,255,255,0.86)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
-    gap: 4,
-  },
-  itemTitle: { fontWeight: "900", color: "#111" },
-  itemSub: { color: "#666" },
-  badge: { alignSelf: "flex-start", marginTop: 6, color: "#fa4376", fontWeight: "800" },
-});

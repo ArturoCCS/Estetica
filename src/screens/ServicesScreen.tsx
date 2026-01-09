@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Dimensions, FlatList, Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 import { Service } from "../types/domain";
 
 const { width: WINDOW_WIDTH } = Dimensions.get("window");
@@ -16,6 +16,7 @@ export function ServicesScreen() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name", "asc"));
@@ -52,36 +53,85 @@ export function ServicesScreen() {
     : (WINDOW_WIDTH - 48 - 16) / 2;
 
   return (
-    <View style={ss.container}>
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 16, 
+      paddingTop: 24 
+    }}>
       {/* Header */}
-      <View style={ss.header}>
-        <Text style={ss.title}>Servicios</Text>
-        <Text style={ss.subtitle}>Encuentra el servicio perfecto para ti</Text>
+      <View style={{ 
+        marginBottom: 16,
+        paddingHorizontal: 4,
+      }}>
+        <Text style={{ 
+          fontSize: 28, 
+          fontWeight: "900", 
+          color: theme.colors.text,
+          letterSpacing: -0.5,
+        }}>
+          Servicios
+        </Text>
+        <Text style={{
+          fontSize: 14,
+          color: theme.colors.textMuted,
+          marginTop: 4,
+        }}>
+          Encuentra el servicio perfecto para ti
+        </Text>
       </View>
 
       {/* Filter pills */}
       {categories.length > 0 && (
         <View style={ss.filtersWrap}>
           <Pressable
-            style={[ss.pill, !filter && ss.pillActive]}
+            style={[
+              {
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: !filter ? theme.colors.accent : theme.colors.card,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: theme.colors.border,
+              }
+            ]}
             onPress={() => setFilter(null)}
           >
-            <Text style={[ss.pillText, !filter && ss.pillTextActive]}>Todos</Text>
+            <Text style={{ 
+              fontSize: 14, 
+              fontWeight: !filter ? "700" : "500",
+              color: !filter ? theme.colors.primary : theme.colors.text,
+            }}>
+              Todos
+            </Text>
           </Pressable>
           {categories.map(cat => (
             <Pressable
               key={cat}
-              style={[ss.pill, filter === cat && ss.pillActive]}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: filter === cat ? theme.colors.accent : theme.colors.card,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: theme.colors.border,
+              }}
               onPress={() => setFilter(cat)}
             >
-              <Text style={[ss.pillText, filter === cat && ss.pillTextActive]}>{cat}</Text>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: filter === cat ? "700" : "500",
+                color: filter === cat ? theme.colors.primary : theme.colors.text,
+              }}>
+                {cat}
+              </Text>
             </Pressable>
           ))}
         </View>
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color={theme.colors.primaryDark} style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color={theme.colors.accent} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={filteredServices}

@@ -24,7 +24,7 @@ import { Screen } from "../components/Screen";
 import { DerivedNotification, updateLastSeen, useDerivedNotifications } from "../lib/notifications-derived";
 import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../providers/AuthProvider";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -33,6 +33,7 @@ export function NotificationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const notifications = useDerivedNotifications(isAdmin, user?.uid || null);
   const [loading, setLoading] = React.useState(true);
+  const { theme } = useTheme();
 
   // Mark as read when screen opens (for non-admin users)
   useEffect(() => {
@@ -83,31 +84,51 @@ export function NotificationsScreen() {
     return (
       <Pressable
         style={({ pressed }) => [
-          styles.notificationItem,
-          shouldShowAsUnread && styles.notificationItemUnread,
-          pressed && styles.notificationItemPressed,
+          {
+            flexDirection: "row",
+            padding: 16,
+            backgroundColor: shouldShowAsUnread ? theme.colors.cardSecondary : theme.colors.card,
+            borderRadius: 12,
+            marginBottom: 12,
+            gap: 12,
+            borderLeftWidth: shouldShowAsUnread ? 3 : 0,
+            borderLeftColor: shouldShowAsUnread ? theme.colors.accent : "transparent",
+            ...Platform.select({
+              ios: theme.shadows.sm,
+              android: { elevation: 2 },
+              web: {},
+            }),
+          },
+          pressed && { opacity: 0.7 },
         ]}
         onPress={() => handleNotificationPress(item)}
       >
-        <View style={styles.notificationIcon}>
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: theme.colors.surface,
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
           <Ionicons
             name={item.type === "appointment_pending" ? "calendar-outline" : "checkmark-circle-outline"}
             size={24}
-            color={theme.colors.primary}
+            color={theme.colors.accent}
           />
         </View>
         
         <View style={styles.notificationContent}>
           <View style={styles.notificationHeader}>
-            <Text style={styles.notificationTitle} numberOfLines={1}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: theme.colors.text, flex: 1 }} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.notificationTime}>
+            <Text style={{ fontSize: 12, color: theme.colors.textMuted }}>
               {formatTimestamp(item.timestamp)}
             </Text>
           </View>
           
-          <Text style={styles.notificationMessage} numberOfLines={2}>
+          <Text style={{ fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 }} numberOfLines={2}>
             {item.message}
           </Text>
         </View>
@@ -119,18 +140,22 @@ export function NotificationsScreen() {
     <Screen>
       <HeaderBack />
       <View style={styles.header}>
-        <Text style={styles.title}>Notificaciones</Text>
+        <Text style={{ fontSize: 28, fontWeight: "900", color: theme.colors.text, letterSpacing: -0.5 }}>
+          Notificaciones
+        </Text>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.accent} />
         </View>
       ) : notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyText}>No hay notificaciones</Text>
-          <Text style={styles.emptySubtext}>
+          <Ionicons name="notifications-off-outline" size={64} color={theme.colors.textMuted} />
+          <Text style={{ fontSize: 18, fontWeight: "700", color: theme.colors.textSecondary, marginTop: 16 }}>
+            No hay notificaciones
+          </Text>
+          <Text style={{ fontSize: 14, color: theme.colors.textMuted, textAlign: "center", marginTop: 8 }}>
             {isAdmin 
               ? "Las citas solicitadas aparecerán aquí" 
               : "Las actualizaciones de tus citas aparecerán aquí"}
@@ -153,12 +178,6 @@ const styles = StyleSheet.create({
   header: {
     paddingBottom: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: theme.colors.text,
-    letterSpacing: -0.5,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -171,56 +190,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingBottom: 100,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#6b7280",
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-    marginTop: 8,
-  },
   listContent: {
     paddingBottom: 30,
-  },
-  notificationItem: {
-    flexDirection: "row",
-    padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-      web: {
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      },
-    }),
-  },
-  notificationItemUnread: {
-    backgroundColor: "#fef3f5",
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
-  },
-  notificationItemPressed: {
-    opacity: 0.7,
-  },
-  notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fef3f5",
-    justifyContent: "center",
-    alignItems: "center",
   },
   notificationContent: {
     flex: 1,
@@ -231,20 +202,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: 8,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
-    flex: 1,
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: "#9ca3af",
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: "#6b7280",
-    lineHeight: 20,
   },
 });

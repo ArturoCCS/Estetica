@@ -20,7 +20,7 @@ import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../providers/AuthProvider";
 import { useNotificationBadge } from "../providers/NotificationBadgeProvider";
-import { theme } from "../theme/theme";
+import { useTheme } from "../providers/ThemeProvider";
 
 const windowWidth = Dimensions.get("window").width;
 const isWeb = Platform.OS === "web";
@@ -63,6 +63,7 @@ export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { badgeCount } = useNotificationBadge();
+  const { theme } = useTheme();
 
   // ===== Promo carousel: dots + autoplay =====
   const promoListRef = useRef<FlatList<Promo>>(null);
@@ -198,22 +199,44 @@ export function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        paddingTop: 16,
+        paddingHorizontal: 16,
+      }}
       contentContainerStyle={containerStyle}
       showsVerticalScrollIndicator={Platform.OS === "web"}
     >
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>Hola 👋</Text>
-          <Text style={styles.cityLabel}>Encuentra tu belleza perfecta</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: theme.colors.text }}>
+            Hola 👋
+          </Text>
+          <Text style={{ fontSize: 14, color: theme.colors.textMuted, marginTop: 2 }}>
+            Encuentra tu belleza perfecta
+          </Text>
         </View>
 
         <Pressable onPress={() => navigation.navigate("Notifications")} style={styles.bellContainer} hitSlop={10}>
-          <Ionicons name="notifications-outline" size={24} color="#1f1f1f" />
+          <Ionicons name="notifications-outline" size={24} color={theme.colors.text} />
           {badgeCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badgeCount > 99 ? "99+" : badgeCount}</Text>
+            <View style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              backgroundColor: theme.colors.accent,
+              borderRadius: 10,
+              minWidth: 20,
+              height: 20,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 4,
+            }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "800" }}>
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </Text>
             </View>
           )}
         </Pressable>
@@ -224,7 +247,15 @@ export function HomeScreen() {
         <SkeletonPromoCarousel />
       ) : visiblePromos.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Promociones especiales</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Promociones especiales
+          </Text>
 
           <View onLayout={(e) => setPromoViewportW(e.nativeEvent.layout.width)} style={styles.promoCarouselWrap}>
             {/* Espera a medir para que paging/offset funcione perfecto */}
@@ -292,7 +323,15 @@ export function HomeScreen() {
       ) : null}
 
       {/* SERVICIOS */}
-      <Text style={styles.sectionTitle}>Nuestros servicios</Text>
+      <Text style={{ 
+        fontSize: 18, 
+        fontWeight: "900", 
+        color: theme.colors.text,
+        marginBottom: 4,
+        letterSpacing: -0.3,
+      }}>
+        Nuestros servicios
+      </Text>
       {loadingServices ? (
         <SkeletonServices />
       ) : services.length > 0 ? (
@@ -330,7 +369,15 @@ export function HomeScreen() {
       {/* GALERÍA */}
       {gallery.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Galería</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Galería
+          </Text>
           {loadingGallery ? (
             <SkeletonGallery />
           ) : (
@@ -349,7 +396,15 @@ export function HomeScreen() {
       {/* TESTIMONIOS */}
       {reviews.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Clientes felices</Text>
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: "900", 
+            color: theme.colors.text,
+            marginBottom: 4,
+            letterSpacing: -0.3,
+          }}>
+            Clientes felices
+          </Text>
           {loadingReviews ? (
             <SkeletonReviews />
           ) : (
@@ -459,42 +514,6 @@ const styles = StyleSheet.create({
     position: "relative",
     padding: 4,
   },
-  badge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 5,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#1f1f1f",
-    letterSpacing: -0.5,
-  },
-  cityLabel: {
-    fontWeight: "400",
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#1f1f1f",
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
   emptyText: {
     color: "#9ca3af",
     textAlign: "center",
@@ -557,7 +576,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   promoBtnText: {
-    color: theme.colors.primary,
+    color: "#1E293B",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -577,7 +596,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 18,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#E7DDC8",
   },
 
   serviceCard: {
@@ -616,7 +635,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   servicePrice: {
-    color: theme.colors.primary,
+    color: "#E7DDC8",
     fontWeight: "700",
     fontSize: 12,
   },
@@ -680,7 +699,7 @@ const styles = StyleSheet.create({
   },
 
   bookCta: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#E7DDC8",
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -692,17 +711,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...Platform.select({
       ios: {
-        shadowColor: theme.colors.primary,
+        shadowColor: "#E7DDC8",
         shadowOpacity: 0.3,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 4 },
       },
       android: { elevation: 4 },
-      web: { boxShadow: `0 4px 12px ${theme.colors.primary}40` },
+      web: { boxShadow: `0 4px 12px #E7DDC840` },
     }),
   },
   bookCtaText: {
-    color: "#fff",
+    color: "#1E293B",
     fontWeight: "800",
     fontSize: 16,
   },
