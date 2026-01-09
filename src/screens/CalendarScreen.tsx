@@ -92,7 +92,7 @@ export function CalendarScreen() {
     };
 
     return marks;
-  }, [items, selectedDay]);
+  }, [items, selectedDay, theme]);
 
   const dayAppointments = React.useMemo(() => {
     return items
