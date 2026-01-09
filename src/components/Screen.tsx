@@ -25,20 +25,14 @@ export function Screen({ children, style, scroll = false, contentContainerStyle 
       <ScrollView
         style={[
           base,
-          Platform.select({
-            web: {
-              overflowY: "auto",
-              scrollbarWidth: "thin",
-              scrollbarColor: "#DB277733 transparent",
-            } as any,
-          }),
+          Platform.OS === "web" && ({ overflowY: "auto" } as any),
         ]}
         contentContainerStyle={[
           { flexGrow: 1, paddingBottom: insets.bottom + 24 },
           contentContainerStyle,
           style,
         ]}
-        showsVerticalScrollIndicator={Platform.OS === "web"}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {children}
