@@ -1,12 +1,16 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Button, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Button } from "../components/Button";
+import { Screen } from "../components/Screen";
 import { auth } from "../lib/auth";
+import { useTheme } from "../providers/ThemeProvider";
 
 export function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
 
   async function handleLogin() {
     if (!email || !password) {
@@ -29,27 +33,70 @@ export function LoginScreen({ navigation }: any) {
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 25 }}>
-      <Text style={{ fontWeight: "bold", fontSize: 20, marginBottom: 18 }}>Iniciar sesión</Text>
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-        style={{ borderBottomWidth: 1, marginBottom: 16 }}
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={{ borderBottomWidth: 1, marginBottom: 22 }}
-      />
-      <Button title={loading ? "Entrando..." : "Entrar"} onPress={handleLogin} disabled={loading} />
-      <Pressable onPress={() => navigation.navigate("Signup")}>
-        <Text style={{ marginTop: 16, textAlign: "center", color: "blue" }}>¿No tienes cuenta? Regístrate</Text>
-      </Pressable>
-    </View>
+    <Screen>
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 25, gap: 16 }}>
+        <Text style={{ 
+          fontWeight: "800", 
+          fontSize: 32, 
+          marginBottom: 32, 
+          color: theme.colors.text,
+          textAlign: "center",
+        }}>
+          Iniciar sesión
+        </Text>
+        
+        <TextInput
+          placeholder="Email"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+          style={{ 
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+            padding: 14,
+            backgroundColor: theme.colors.card,
+            color: theme.colors.text,
+            fontSize: 16,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardType="email-address"
+        />
+        
+        <TextInput
+          placeholder="Contraseña"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={{ 
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+            padding: 14,
+            backgroundColor: theme.colors.card,
+            color: theme.colors.text,
+            fontSize: 16,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
+        />
+        
+        <Button 
+          title={loading ? "Entrando..." : "Entrar"} 
+          onPress={handleLogin} 
+          disabled={loading} 
+        />
+        
+        <Pressable onPress={() => navigation.navigate("Signup")}>
+          <Text style={{ 
+            marginTop: 16, 
+            textAlign: "center", 
+            color: theme.colors.accent,
+            fontWeight: "600",
+          }}>
+            ¿No tienes cuenta? Regístrate
+          </Text>
+        </Pressable>
+      </View>
+    </Screen>
   );
 }

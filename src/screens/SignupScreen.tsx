@@ -1,9 +1,12 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore"; // Usaremos setDoc y doc para uid como ID
 import React, { useState } from "react";
-import { Alert, Button, Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Button } from "../components/Button";
+import { Screen } from "../components/Screen";
 import { auth } from "../lib/auth";
 import { db } from "../lib/firebase";
+import { useTheme } from "../providers/ThemeProvider";
 
 const ADMIN_EMAIL = process.env.EXPO_PUBLIC_ADMIN_EMAIL;
 
@@ -11,6 +14,7 @@ export function SignupScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
 
   async function handleSignup() {
     if (!email || !password) {
@@ -50,27 +54,70 @@ export function SignupScreen({ navigation }: any) {
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 25 }}>
-      <Text style={{ fontWeight: "bold", fontSize: 20, marginBottom: 18 }}>Crear cuenta</Text>
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-        style={{ borderBottomWidth: 1, marginBottom: 16 }}
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={{ borderBottomWidth: 1, marginBottom: 22 }}
-      />
-      <Button title={loading ? "Registrando..." : "Registrarse"} onPress={handleSignup} disabled={loading} />
-      <Pressable onPress={() => navigation.goBack()}>
-        <Text style={{ marginTop: 16, textAlign: "center", color: "blue" }}>¿Ya tienes cuenta? Inicia sesión</Text>
-      </Pressable>
-    </View>
+    <Screen>
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 25, gap: 16 }}>
+        <Text style={{ 
+          fontWeight: "800", 
+          fontSize: 32, 
+          marginBottom: 32, 
+          color: theme.colors.text,
+          textAlign: "center",
+        }}>
+          Crear cuenta
+        </Text>
+        
+        <TextInput
+          placeholder="Email"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+          style={{ 
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+            padding: 14,
+            backgroundColor: theme.colors.card,
+            color: theme.colors.text,
+            fontSize: 16,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardType="email-address"
+        />
+        
+        <TextInput
+          placeholder="Contraseña"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={{ 
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+            padding: 14,
+            backgroundColor: theme.colors.card,
+            color: theme.colors.text,
+            fontSize: 16,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
+        />
+        
+        <Button 
+          title={loading ? "Registrando..." : "Registrarse"} 
+          onPress={handleSignup} 
+          disabled={loading} 
+        />
+        
+        <Pressable onPress={() => navigation.goBack()}>
+          <Text style={{ 
+            marginTop: 16, 
+            textAlign: "center", 
+            color: theme.colors.accent,
+            fontWeight: "600",
+          }}>
+            ¿Ya tienes cuenta? Inicia sesión
+          </Text>
+        </Pressable>
+      </View>
+    </Screen>
   );
 }
