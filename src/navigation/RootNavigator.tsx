@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useAuth } from "../providers/AuthProvider";
 import { AdminAppointmentsScreen } from "../screens/admin/AdminAppointmentsScreen";
 import { AdminScreen } from "../screens/admin/AdminScreen";
@@ -29,7 +29,7 @@ export function RootNavigator() {
   // Show loading screen while auth is hydrating to prevent premature Firestore queries
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#D4A574" />
       </View>
     );
@@ -67,3 +67,11 @@ export function RootNavigator() {
 
 export { RootStackParamList };
 
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+});

@@ -37,10 +37,12 @@ export const reactNativeAsyncStoragePersistence = {
     }
   },
   _addListener(_key: string, _listener: () => void): void {
-    // Not implemented for React Native
+    // Not needed for React Native - Firebase uses this for web storage events
+    // React Native AsyncStorage doesn't support cross-tab/window synchronization
   },
   _removeListener(_key: string, _listener: () => void): void {
-    // Not implemented for React Native
+    // Not needed for React Native - Firebase uses this for web storage events
+    // React Native AsyncStorage doesn't support cross-tab/window synchronization
   },
 };
 
