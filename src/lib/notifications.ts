@@ -28,15 +28,29 @@ export function notificationsRef(userId: string) {
 
 export function subscribeUnreadCount(userId: string, cb: (count: number) => void) {
   const q = query(notificationsRef(userId), where("readAt", "==", null));
-  return onSnapshot(q, (snap) => cb(snap.size));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.size),
+    (error) => {
+      console.error("subscribeUnreadCount snapshot error:", error);
+      cb(0);
+    }
+  );
 }
 
 export function subscribeNotifications(userId: string, cb: (items: AppNotification[]) => void) {
   const q = query(notificationsRef(userId), orderBy("createdAt", "desc"), limit(200));
-  return onSnapshot(q, (snap) => {
-    const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as AppNotification[];
-    cb(items);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as AppNotification[];
+      cb(items);
+    },
+    (error) => {
+      console.error("subscribeNotifications snapshot error:", error);
+      cb([]);
+    }
+  );
 }
 
 export async function markNotificationRead(userId: string, notificationId: string) {

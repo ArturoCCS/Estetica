@@ -115,41 +115,73 @@ export function HomeScreen() {
   // ===== Firestore subscriptions =====
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const rows: Service[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Service[];
-      setServices(rows);
-      setLoadingServices(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Service[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Service[];
+        setServices(rows);
+        setLoadingServices(false);
+      },
+      (error) => {
+        console.error("HomeScreen services snapshot error:", error);
+        setLoadingServices(false);
+        setServices([]);
+      }
+    );
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "promos"), orderBy("text"));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const rows: Promo[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Promo[];
-      setPromos(rows);
-      setLoadingPromos(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Promo[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Promo[];
+        setPromos(rows);
+        setLoadingPromos(false);
+      },
+      (error) => {
+        console.error("HomeScreen promos snapshot error:", error);
+        setLoadingPromos(false);
+        setPromos([]);
+      }
+    );
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "gallery"), orderBy("imageUrl"));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const rows: GalleryImage[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as GalleryImage[];
-      setGallery(rows);
-      setLoadingGallery(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const rows: GalleryImage[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as GalleryImage[];
+        setGallery(rows);
+        setLoadingGallery(false);
+      },
+      (error) => {
+        console.error("HomeScreen gallery snapshot error:", error);
+        setLoadingGallery(false);
+        setGallery([]);
+      }
+    );
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "reviews"), orderBy("id"));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const rows: Review[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Review[];
-      setReviews(rows);
-      setLoadingReviews(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Review[] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Review[];
+        setReviews(rows);
+        setLoadingReviews(false);
+      },
+      (error) => {
+        console.error("HomeScreen reviews snapshot error:", error);
+        setLoadingReviews(false);
+        setReviews([]);
+      }
+    );
     return unsubscribe;
   }, []);
 
