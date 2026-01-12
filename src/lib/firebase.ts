@@ -10,11 +10,6 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-console.log("[firebase env]", {
-  apiKey: firebaseConfig.apiKey,
-  projectId: firebaseConfig.projectId
-});
-
 const missing = Object.entries(firebaseConfig)
   .filter(([_, v]) => !v)
   .map(([k]) => k);

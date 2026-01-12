@@ -42,7 +42,6 @@ export function HeaderBack({ title, right }: Props) {
 
 const s = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 16,
     paddingBottom: 10,
     backgroundColor: "transparent",
   },

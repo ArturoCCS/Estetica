@@ -3,7 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+// 1. Importamos FlatList
+import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { z } from "zod";
 import { Button } from "../../components/Button";
@@ -67,7 +68,6 @@ export function AdminAppointmentsScreen() {
     const dateStr = reqDate.toISOString().split("T")[0];
     const startTime = reqDate.toTimeString().slice(0, 5);
     
-    // Default end time: start + 1 hour
     const endDate = new Date(reqDate.getTime() + 60 * 60 * 1000);
     const endTime = endDate.toTimeString().slice(0, 5);
 
@@ -96,13 +96,11 @@ export function AdminAppointmentsScreen() {
       };
 
       if (paymentsEnabled) {
-        // Request payment
         const paymentDueAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         updateData.status = "awaiting_payment";
         updateData.depositAmount = depositAmount;
         updateData.paymentDueAt = paymentDueAt;
       } else {
-        // Confirm without payment
         updateData.status = "confirmed";
       }
 
@@ -143,65 +141,81 @@ export function AdminAppointmentsScreen() {
 
   const statuses: Array<AppointmentStatus | "all"> = ["all", "requested", "awaiting_payment", "confirmed", "cancelled", "expired"];
 
-  return (
-    <Screen>
-      <HeaderBack />
-      <Text style={styles.title}>Gestión de Citas</Text>
+  // Render Item separado para mantener el código limpio
+  const renderItem = ({ item: apt }: { item: Appointment }) => (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.serviceName}>{apt.serviceName}</Text>
+        <Text style={styles.status}>{apt.status}</Text>
+      </View>
+      
+      <View style={styles.cardBody}>
+        <Text style={styles.label}>
+          <Text style={{fontWeight: '600'}}>Solicitado:</Text> {new Date(apt.requestedStartAt).toLocaleString("es-MX")}
+        </Text>
+        {apt.finalStartAt && apt.finalEndAt && (
+          <Text style={styles.label}>
+             <Text style={{fontWeight: '600'}}>Final:</Text> {new Date(apt.finalStartAt).toLocaleString("es-MX")} - {new Date(apt.finalEndAt).toLocaleTimeString("es-MX")}
+          </Text>
+        )}
+        {apt.depositAmount && <Text style={styles.label}>Depósito: ${apt.depositAmount} MXN</Text>}
+        {apt.paymentDueAt && <Text style={styles.label}>Límite pago: {new Date(apt.paymentDueAt).toLocaleString("es-MX")}</Text>}
+        {apt.mpStatus && <Text style={styles.label}>Estado MP: {apt.mpStatus}</Text>}
+        {apt.notes && <Text style={styles.notes}>Notas: {apt.notes}</Text>}
+      </View>
 
-      {/* Status Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-        {statuses.map((s) => (
-          <TouchableOpacity
-            key={s}
-            style={[styles.filterButton, selectedStatus === s && styles.filterButtonActive]}
-            onPress={() => setSelectedStatus(s)}
-          >
-            <Text style={[styles.filterText, selectedStatus === s && styles.filterTextActive]}>
-              {s === "all" ? "Todas" : s.replace("_", " ")}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.actions}>
+        {apt.status === "requested" && (
+          <Button title="Aprobar" onPress={() => openApprovalModal(apt)} />
+        )}
+        {apt.status === "requested" && (
+          <Button title="Rechazar" variant="secondary" onPress={() => onCancel(apt.id)} />
+        )}
+        {(apt.status === "awaiting_payment" || apt.status === "confirmed") && (
+          <Button title="Cancelar" variant="secondary" onPress={() => onCancel(apt.id)} />
+        )}
+      </View>
+    </Card>
+  );
+
+  return (
+    // Asegúrate de que tu componente Screen tenga flex: 1 o preset="fixed"
+    <Screen contentContainerStyle={{flex: 1}}>
+      <HeaderBack />
+      <View style={{paddingHorizontal: 20}}>
+        <Text style={styles.title}>Gestión de Citas</Text>
+
+        {/* Status Filter */}
+        <View style={{ height: 60 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer} contentContainerStyle={{alignItems: 'center'}}>
+            {statuses.map((s) => (
+                <TouchableOpacity
+                key={s}
+                style={[styles.filterButton, selectedStatus === s && styles.filterButtonActive]}
+                onPress={() => setSelectedStatus(s)}
+                >
+                <Text style={[styles.filterText, selectedStatus === s && styles.filterTextActive]}>
+                    {s === "all" ? "Todas" : s.replace("_", " ")}
+                </Text>
+                </TouchableOpacity>
+            ))}
+            </ScrollView>
+        </View>
+      </View>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 30 }} color={theme.colors.primaryDark} />
       ) : appointments.length === 0 ? (
         <Text style={styles.empty}>No hay citas en este estado.</Text>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-          {appointments.map((apt) => (
-            <Card key={apt.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.serviceName}>{apt.serviceName}</Text>
-                <Text style={styles.status}>{apt.status}</Text>
-              </View>
-              <Text style={styles.label}>
-                Solicitado: {new Date(apt.requestedStartAt).toLocaleString("es-MX")}
-              </Text>
-              {apt.finalStartAt && apt.finalEndAt && (
-                <Text style={styles.label}>
-                  Final: {new Date(apt.finalStartAt).toLocaleString("es-MX")} - {new Date(apt.finalEndAt).toLocaleTimeString("es-MX")}
-                </Text>
-              )}
-              {apt.depositAmount && <Text style={styles.label}>Depósito: ${apt.depositAmount} MXN</Text>}
-              {apt.paymentDueAt && <Text style={styles.label}>Límite pago: {new Date(apt.paymentDueAt).toLocaleString("es-MX")}</Text>}
-              {apt.mpStatus && <Text style={styles.label}>Estado MP: {apt.mpStatus}</Text>}
-              {apt.notes && <Text style={styles.notes}>Notas: {apt.notes}</Text>}
-
-              <View style={styles.actions}>
-                {apt.status === "requested" && (
-                  <Button title="Aprobar" onPress={() => openApprovalModal(apt)} />
-                )}
-                {apt.status === "requested" && (
-                  <Button title="Rechazar" variant="secondary" onPress={() => onCancel(apt.id)} />
-                )}
-                {(apt.status === "awaiting_payment" || apt.status === "confirmed") && (
-                  <Button title="Cancelar" variant="secondary" onPress={() => onCancel(apt.id)} />
-                )}
-              </View>
-            </Card>
-          ))}
-        </ScrollView>
+        // 2. Usamos FlatList aquí
+        <FlatList
+          data={appointments}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          style={{ flex: 1 }}
+        />
       )}
 
       {/* Approval Modal */}
@@ -285,7 +299,7 @@ export function AdminAppointmentsScreen() {
 
 const styles = StyleSheet.create({
   title: { fontWeight: "700", fontSize: 22, marginBottom: 12, color: theme.colors.text },
-  filterContainer: { maxHeight: 50, marginBottom: 16 },
+  filterContainer: { maxHeight: 50, marginBottom: 10 },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -296,22 +310,29 @@ const styles = StyleSheet.create({
   filterButtonActive: { backgroundColor: theme.colors.primary },
   filterText: { color: "#666", fontSize: 14, textTransform: "capitalize" },
   filterTextActive: { color: "#fff", fontWeight: "600" },
-  empty: { alignSelf: "center", marginTop: 60, color: "#888", fontSize: 15 },
-  card: { marginBottom: 12, gap: 8 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  serviceName: { fontWeight: "700", fontSize: 16, color: theme.colors.text },
+  empty: { alignSelf: "center", marginTop: 10, color: "#888", fontSize: 15 },
+  
+  // Estilos mejorados para la tarjeta
+  card: { marginBottom: 16, padding: 16 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
+  cardBody: { gap: 6, marginBottom: 12 },
+  
+  serviceName: { fontWeight: "700", fontSize: 18, color: theme.colors.text, flex: 1, marginRight: 10 },
   status: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#fff",
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     textTransform: "capitalize",
+    overflow: 'hidden',
+    textAlign: 'center'
   },
-  label: { fontSize: 14, color: "#555" },
-  notes: { fontSize: 13, color: "#777", fontStyle: "italic" },
-  actions: { flexDirection: "row", gap: 8, marginTop: 8 },
+  label: { fontSize: 14, color: "#555", lineHeight: 20 },
+  notes: { fontSize: 13, color: "#777", fontStyle: "italic", marginTop: 4 },
+  actions: { flexDirection: "column", gap: 10, marginTop: 4 },
+  
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

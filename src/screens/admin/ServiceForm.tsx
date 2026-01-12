@@ -1,5 +1,5 @@
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 
 import { Button } from "../../components/Button";
@@ -45,6 +45,10 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
     [isWeb]
   );
 
+  // console.log("Category:", initialValues.category);
+  
+  console.log("Todo:", initialValues);
+
   // Estado local desde initialValues
   const [name, setName] = useState(initialValues.name ?? "");
   const [description, setDescription] = useState(initialValues.description ?? "");
@@ -56,6 +60,20 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
   const [galleryUrls, setGalleryUrls] = useState<string[]>(initialValues.galleryUrls ?? []);
 
   const [saving, setSaving] = useState(false);
+
+  // ✅ CORRECCIÓN: Sincronizar estado cuando initialValues cambian (vienen de la BD)
+  useEffect(() => {
+    if (initialValues) {
+      setName(initialValues.name ?? "");
+      setDescription(initialValues.description ?? "");
+      setCategory(initialValues.category ?? "");
+      setDurationMin(initialValues.durationMin ?? "");
+      setDurationMax(initialValues.durationMax ?? "");
+      setPrice(initialValues.price ?? "");
+      setHeroImageUrl(initialValues.heroImageUrl ?? "");
+      setGalleryUrls(initialValues.galleryUrls ?? []);
+    }
+  }, [initialValues]);
 
   async function handleSave() {
     if (saving) return;
@@ -79,8 +97,6 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
     setSaving(true);
     try {
       // Importante: como el admin edita desde app, aquí estás escribiendo directo Firestore.
-      // Si tus rules bloquean write en /services, esto fallará.
-      // En ese caso se debe guardar vía Cloud Function admin.
       const heroUrl = heroImageUrl.trim() || null;
       const payload: any = {
         name: n,

@@ -14,6 +14,7 @@ type Service = {
   id: string;
   name: string;
   price?: number;
+  category?: string;
   durationMin?: number;
   durationMax?: number;
   description?: string;
@@ -57,7 +58,8 @@ export function ServicesAdminScreen() {
         initialValues={{
           name: editing.name,
           description: editing.description ?? "",
-          category: "",
+          category: editing.category ?? "",
+          galleryUrls: editing.galleryUrls ?? [],
           durationMin: `${editing.durationMin ?? ""}`,
           durationMax: `${editing.durationMax ?? ""}`,
           price: editing.price ? `${editing.price}` : "",

@@ -7,7 +7,7 @@
  * Works on free plan - no Cloud Functions required.
  */
 
-import { collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc, where } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Appointment, AppointmentStatus } from "../types/domain";
 import { db } from "./firebase";
@@ -99,7 +99,7 @@ export function useUserUnreadCount(userId: string | null): number {
     const q = query(
       collection(db, "appointments"),
       where("userId", "==", userId),
-      orderBy("updatedAt", "desc")
+      orderBy("updatedAt", "asc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -175,7 +175,7 @@ export function useDerivedNotifications(
       q = query(
         collection(db, "appointments"),
         where("userId", "==", userId),
-        orderBy("updatedAt", "desc")
+        orderBy("updatedAt", "asc")
       );
     } else {
       setNotifications([]);

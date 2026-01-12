@@ -11,9 +11,10 @@ export function SignupScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
 
   async function handleSignup() {
-    if (!email || !password) {
+    if (!email || !password || !name) {
       Alert.alert("Completa todos los campos");
       return;
     }
@@ -22,7 +23,11 @@ export function SignupScreen({ navigation }: any) {
       return;
     }
     if (ADMIN_EMAIL && email.trim() === ADMIN_EMAIL) {
-      Alert.alert("Ese correo está reservado para administrador");
+      Alert.alert("Ese correo está reservado");
+      return;
+    }
+    if(name.trim().length < 0){
+      Alert.alert("El nombre no puede estar vacío");
       return;
     }
 
@@ -33,6 +38,7 @@ export function SignupScreen({ navigation }: any) {
       await setDoc(doc(db, "users", userCred.user.uid), {
         uid: userCred.user.uid,
         email: email.trim(),
+        name: name.trim(), 
         createdAt: new Date().toISOString(),
         coupons: [] // Puedes poner otros campos personalizados que necesites
       });
@@ -52,6 +58,12 @@ export function SignupScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 25 }}>
       <Text style={{ fontWeight: "bold", fontSize: 20, marginBottom: 18 }}>Crear cuenta</Text>
+       <TextInput
+        placeholder="Nombre"
+        value={name}
+        onChangeText={setName}
+        style={{ borderBottomWidth: 1, marginBottom: 22 }}
+      />
       <TextInput
         placeholder="Email"
         autoCapitalize="none"

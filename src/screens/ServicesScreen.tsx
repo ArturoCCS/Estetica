@@ -34,14 +34,14 @@ export function ServicesScreen() {
   const categories = useMemo(() => {
     const cats = new Set<string>();
     services.forEach(s => {
-      if (s.category) cats.add(s.category);
+      if (typeof s.category === "string" && s.category.length > 0) cats.add(s.category);
     });
     return Array.from(cats).sort();
   }, [services]);
 
   const filteredServices = useMemo(() => {
     if (!filter) return services;
-    return services.filter(s => s.category === filter);
+    return services.filter(s => typeof s.category === "string" && s.category === filter);
   }, [services, filter]);
 
   // Responsive columns: 2 on mobile, 3-4 on web
@@ -68,7 +68,8 @@ export function ServicesScreen() {
           >
             <Text style={[ss.pillText, !filter && ss.pillTextActive]}>Todos</Text>
           </Pressable>
-          {categories.map(cat => (
+
+          {categories.map((cat) => (
             <Pressable
               key={cat}
               style={[ss.pill, filter === cat && ss.pillActive]}
@@ -145,8 +146,9 @@ const ss = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: "#fafafa",
-    paddingHorizontal: 16, 
-    paddingTop: 24 
+    paddingHorizontal: 15, 
+    paddingTop: 30,
+    paddingBottom: 30,
   },
   header: { 
     marginBottom: 16,

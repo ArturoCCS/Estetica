@@ -6,6 +6,7 @@ export type Service = {
   name: string;
   description?: string;
 
+  category?: string;
   // Hero/landing
   heroImageUrl?: string;     // imagen grande arriba
   imageUrl?: string;         // compat con lo viejo (portada)

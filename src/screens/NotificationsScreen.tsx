@@ -117,11 +117,8 @@ export function NotificationsScreen() {
 
   return (
     <Screen>
-      <HeaderBack />
-      <View style={styles.header}>
-        <Text style={styles.title}>Notificaciones</Text>
-      </View>
-
+      <HeaderBack title="Notificaciones"/>
+      
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -150,15 +147,6 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: theme.colors.text,
-    letterSpacing: -0.5,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

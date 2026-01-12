@@ -25,8 +25,6 @@ export function ProfileScreen() {
       <Text style={styles.title}>Perfil</Text>
       <Text style={styles.label}>Email:</Text>
       <Text style={styles.email}>{user.email}</Text>
-      <Text style={styles.label}>Rol:</Text>
-      <Text style={styles.role}>{isAdmin ? "Admin" : "Usuario"}</Text>
 
       <Text style={styles.label}>Cupones activos:</Text>
       {cupons.length === 0 ? (

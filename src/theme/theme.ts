@@ -5,7 +5,7 @@ export const theme = {
     text: "#111827",
     muted: "#6B7280",
     border: "#E5E7EB",
-    primary: "#DB2777", // rosa elegante
+    primary: "#A66170",
     primaryDark: "#9D174D",
     danger: "#B91C1C"
   },

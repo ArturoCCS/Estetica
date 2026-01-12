@@ -2,11 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { doc, onSnapshot } from "firebase/firestore";
-import React, { useMemo } from "react";
-import { Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { ViewStyle, FlexAlignType } from "react-native";
+import React, { useMemo, useState } from "react";
+import type { FlexAlignType, ViewStyle } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { HeaderBack } from "../components/HeaderBack";
+// Asegúrate de que la ruta de importación sea correcta:
+import { ImageLightbox } from "../components/ImageLightbox";
 import { Screen } from "../components/Screen";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
@@ -15,14 +17,16 @@ import { Service } from "../types/domain";
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type R = RouteProp<RootStackParamList, "ServiceDetail">;
 
-const W = Dimensions.get("window").width;
-
 export function ServiceDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
   const serviceId = route.params.serviceId;
 
-  const [service, setService] = React.useState<Service | null>(null);
+  const [service, setService] = useState<Service | null>(null);
+
+  // ESTADO PARA EL LIGHTBOX
+  const [isLightboxVisible, setLightboxVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   React.useEffect(() => {
     const ref = doc(db, "services", serviceId);
@@ -43,7 +47,7 @@ export function ServiceDetailScreen() {
     return (
       <Screen scroll contentContainerStyle={containerStyle}>
         <HeaderBack title="Servicio" />
-        <Text style={{ color: "#777" }}>Cargando…</Text>
+        <Text style={{ color: "#777", padding: 20 }}>Cargando…</Text>
       </Screen>
     );
   }
@@ -51,10 +55,22 @@ export function ServiceDetailScreen() {
   const hero = service.heroImageUrl || service.imageUrl;
   const gallery = (service.galleryUrls ?? []).filter(Boolean);
 
+  // Transformamos las URLs simples al formato que pide el Lightbox { id, imageUrl }
+  const lightboxImages = gallery.map((url, index) => ({
+    id: index.toString(),
+    imageUrl: url,
+  }));
+
+  const handleOpenLightbox = (index: number) => {
+    setCurrentImageIndex(index);
+    setLightboxVisible(true);
+  };
+
   return (
     <Screen scroll contentContainerStyle={[styles.page, containerStyle]}>
       <HeaderBack title={service.name} />
 
+      {/* Hero Section */}
       <View style={styles.heroWrap}>
         {hero ? (
           <Image source={{ uri: hero }} style={styles.heroImg} />
@@ -64,7 +80,6 @@ export function ServiceDetailScreen() {
           </View>
         )}
 
-        {/* Soft overlay */}
         <View style={styles.heroOverlay}>
           <Text style={styles.heroTitle}>{service.name}</Text>
           {!!service.description && <Text style={styles.heroDesc} numberOfLines={3}>{service.description}</Text>}
@@ -78,19 +93,25 @@ export function ServiceDetailScreen() {
         </View>
       </View>
 
+      {/* Galería */}
       {gallery.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resultados / Galería</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 10 }}>
-            {gallery.map((u, i) => (
-              <Pressable key={`${u}-${i}`} style={styles.galleryCard}>
-                <Image source={{ uri: u }} style={styles.galleryImg} />
+            {gallery.map((url, i) => (
+              <Pressable 
+                key={`${url}-${i}`} 
+                style={styles.galleryCard}
+                onPress={() => handleOpenLightbox(i)}
+              >
+                <Image source={{ uri: url }} style={styles.galleryImg} />
               </Pressable>
             ))}
           </ScrollView>
         </View>
       )}
 
+      {/* Descripción */}
       <View style={[styles.section, styles.softCard]}>
         <Text style={styles.sectionTitle}>Descripción</Text>
         <Text style={styles.bodyText}>
@@ -103,6 +124,15 @@ export function ServiceDetailScreen() {
       <Button
         title="Agendar este servicio"
         onPress={() => navigation.navigate("BookService", { serviceId: service.id } as any)}
+      />
+
+      {/* COMPONENTE LIGHTBOX (Fuera del ScrollView o al final, para que cubra la pantalla) */}
+      <ImageLightbox
+        images={lightboxImages}
+        selectedIndex={currentImageIndex}
+        isVisible={isLightboxVisible}
+        onClose={() => setLightboxVisible(false)}
+        onNavigate={setCurrentImageIndex}
       />
     </Screen>
   );
@@ -118,7 +148,7 @@ function Pill({ icon, text }: { icon: any; text: string }) {
 }
 
 const styles = StyleSheet.create({
-  page: { gap: 14, paddingBottom: 30 },
+  page: { gap: 14, paddingBottom: 70 },
   heroWrap: {
     borderRadius: 26,
     overflow: "hidden",
