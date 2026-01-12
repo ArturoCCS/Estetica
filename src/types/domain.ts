@@ -5,6 +5,7 @@ export type Service = {
   id: string;
   name: string;
   description?: string;
+  category?: string;
 
   // Hero/landing
   heroImageUrl?: string;     // imagen grande arriba

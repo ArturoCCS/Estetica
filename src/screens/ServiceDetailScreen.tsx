@@ -26,10 +26,17 @@ export function ServiceDetailScreen() {
 
   React.useEffect(() => {
     const ref = doc(db, "services", serviceId);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (!snap.exists()) return setService(null);
-      setService({ id: snap.id, ...(snap.data() as any) });
-    });
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) return setService(null);
+        setService({ id: snap.id, ...(snap.data() as any) });
+      },
+      (error) => {
+        console.error("ServiceDetailScreen snapshot error:", error);
+        setService(null);
+      }
+    );
     return unsub;
   }, [serviceId]);
 

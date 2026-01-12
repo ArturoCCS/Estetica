@@ -20,14 +20,22 @@ export function ServicesScreen() {
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name", "asc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const rows: Service[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Service, "id">)
-      }));
-      setServices(rows.filter((s) => s.active));
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Service[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<Service, "id">)
+        }));
+        setServices(rows.filter((s) => s.active));
+        setLoading(false);
+      },
+      (error) => {
+        console.error("ServicesScreen snapshot error:", error);
+        setLoading(false);
+        setServices([]);
+      }
+    );
     return () => unsub();
   }, []);
 

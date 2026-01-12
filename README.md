@@ -142,6 +142,26 @@ Deploy Firestore security rules:
 firebase deploy --only firestore:rules
 ```
 
+### Important: Firestore Composite Indexes
+
+The app requires specific composite indexes for efficient queries. These are defined in `firestore.indexes.json` and include:
+
+1. **User appointments query**: `userId` (ASC) + `requestedStartAt` (DESC)
+   - Used in: BookingsScreen, MyAppointmentsScreen, CalendarScreen
+   - Allows users to view their appointments sorted by date
+
+2. **Admin appointments query**: `status` (ASC) + `requestedStartAt` (ASC/DESC)
+   - Used in: AdminAppointmentsScreen
+   - Allows admins to filter appointments by status and sort by date
+
+3. **Day lookup query**: `dayKey` (ASC) + `status` (ASC)
+   - Used for calendar day views and status filtering
+
+If you encounter "The query requires an index" errors:
+- Check that `firestore.indexes.json` is deployed
+- Verify query field order matches the index definition
+- Use Firebase Console to create indexes from error messages
+
 ## Running the App
 
 ### Development
