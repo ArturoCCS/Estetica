@@ -20,7 +20,8 @@ const NotificationBadgeContext = createContext<NotificationBadgeContextProps>({
 export function NotificationBadgeProvider({ children }: { children: React.ReactNode }) {
   const { user, isAdmin } = useAuth();
   
-  const adminPendingCount = useAdminPendingCount();
+  // Pass isAdmin to the hook so it only subscribes when the user is an admin
+  const adminPendingCount = useAdminPendingCount(isAdmin);
   const userUnreadCount = useUserUnreadCount(user?.uid || null);
   
   const badgeCount = useMemo(() => {

@@ -13,6 +13,9 @@ export function subscribeGlobalSettings(
       if (!snap.exists()) return onValue(null);
       onValue(snap.data() as GlobalSettings);
     },
-    (err) => onError?.(err)
+    (err) => {
+      console.error("subscribeGlobalSettings snapshot error:", err);
+      onError?.(err);
+    }
   );
 }

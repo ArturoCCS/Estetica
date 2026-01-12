@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
+import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../providers/AuthProvider";
 import { AdminAppointmentsScreen } from "../screens/admin/AdminAppointmentsScreen";
 import { AdminScreen } from "../screens/admin/AdminScreen";
@@ -24,7 +25,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  
+  // Show loading screen while auth is hydrating to prevent premature Firestore queries
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+        <ActivityIndicator size="large" color="#D4A574" />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

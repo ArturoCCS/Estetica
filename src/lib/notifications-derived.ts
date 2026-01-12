@@ -44,11 +44,18 @@ export function parseToMillis(date: any): number {
 /**
  * Hook: Get count of pending appointments for admins
  * Returns count of appointments with status='requested'
+ * Only runs when isAdmin is true to prevent permission-denied errors
  */
-export function useAdminPendingCount(): number {
+export function useAdminPendingCount(isAdmin: boolean): number {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    // Guard: Only admins should subscribe to all pending appointments
+    if (!isAdmin) {
+      setCount(0);
+      return;
+    }
+
     const q = query(
       collection(db, "appointments"),
       where("status", "==", "requested")
@@ -66,7 +73,7 @@ export function useAdminPendingCount(): number {
     );
 
     return unsubscribe;
-  }, []);
+  }, [isAdmin]);
 
   return count;
 }
