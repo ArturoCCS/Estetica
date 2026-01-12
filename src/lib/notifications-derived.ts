@@ -54,9 +54,16 @@ export function useAdminPendingCount(): number {
       where("status", "==", "requested")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setCount(snapshot.size);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setCount(snapshot.size);
+      },
+      (error) => {
+        console.error("useAdminPendingCount snapshot error:", error);
+        setCount(0);
+      }
+    );
 
     return unsubscribe;
   }, []);
@@ -80,11 +87,18 @@ export function useUserUnreadCount(userId: string | null): number {
     }
 
     const userDocRef = doc(db, "users", userId);
-    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-      const data = snapshot.data();
-      const lastSeenValue = data?.lastSeenNotificationsAt;
-      setLastSeen(parseToMillis(lastSeenValue));
-    });
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        const lastSeenValue = data?.lastSeenNotificationsAt;
+        setLastSeen(parseToMillis(lastSeenValue));
+      },
+      (error) => {
+        console.error("useUserUnreadCount lastSeen snapshot error:", error);
+        setLastSeen(0);
+      }
+    );
 
     return unsubscribe;
   }, [userId]);
@@ -96,21 +110,29 @@ export function useUserUnreadCount(userId: string | null): number {
       return;
     }
 
+    // Firestore composite index required: userId (ASC) + updatedAt (DESC)
     const q = query(
       collection(db, "appointments"),
       where("userId", "==", userId),
       orderBy("updatedAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const unreadCount = snapshot.docs.filter((doc) => {
-        const data = doc.data();
-        const updatedAtMillis = parseToMillis(data.updatedAt || data.createdAt);
-        return updatedAtMillis > lastSeen;
-      }).length;
-      
-      setCount(unreadCount);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const unreadCount = snapshot.docs.filter((doc) => {
+          const data = doc.data();
+          const updatedAtMillis = parseToMillis(data.updatedAt || data.createdAt);
+          return updatedAtMillis > lastSeen;
+        }).length;
+        
+        setCount(unreadCount);
+      },
+      (error) => {
+        console.error("useUserUnreadCount appointments snapshot error:", error);
+        setCount(0);
+      }
+    );
 
     return unsubscribe;
   }, [userId, lastSeen]);
@@ -150,11 +172,18 @@ export function useDerivedNotifications(
     }
 
     const userDocRef = doc(db, "users", userId);
-    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-      const data = snapshot.data();
-      const lastSeenValue = data?.lastSeenNotificationsAt;
-      setLastSeen(parseToMillis(lastSeenValue));
-    });
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        const lastSeenValue = data?.lastSeenNotificationsAt;
+        setLastSeen(parseToMillis(lastSeenValue));
+      },
+      (error) => {
+        console.error("useDerivedNotifications lastSeen snapshot error:", error);
+        setLastSeen(0);
+      }
+    );
 
     return unsubscribe;
   }, [isAdmin, userId]);
@@ -165,6 +194,7 @@ export function useDerivedNotifications(
 
     if (isAdmin) {
       // Admin: show all pending requested appointments
+      // Firestore composite index required: status (ASC) + createdAt (DESC)
       q = query(
         collection(db, "appointments"),
         where("status", "==", "requested"),
@@ -172,6 +202,7 @@ export function useDerivedNotifications(
       );
     } else if (userId) {
       // User: show their appointments
+      // Firestore composite index required: userId (ASC) + updatedAt (DESC)
       q = query(
         collection(db, "appointments"),
         where("userId", "==", userId),
@@ -182,41 +213,48 @@ export function useDerivedNotifications(
       return;
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items: DerivedNotification[] = [];
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: DerivedNotification[] = [];
 
-      snapshot.docs.forEach((docSnap) => {
-        const apt = { id: docSnap.id, ...docSnap.data() } as Appointment;
-        const updatedAtMillis = parseToMillis(apt.updatedAt || apt.createdAt);
+        snapshot.docs.forEach((docSnap) => {
+          const apt = { id: docSnap.id, ...docSnap.data() } as Appointment;
+          const updatedAtMillis = parseToMillis(apt.updatedAt || apt.createdAt);
 
-        // For admins: always show pending items
-        if (isAdmin) {
-          items.push({
-            id: apt.id,
-            type: "appointment_pending",
-            title: "Nueva cita solicitada",
-            message: `${apt.serviceName} • ${new Date(parseToMillis(apt.requestedStartAt)).toLocaleDateString("es-MX")}`,
-            timestamp: parseToMillis(apt.createdAt),
-            appointment: apt,
-          });
-        } else {
-          // For users: only show if updated after lastSeen
-          if (updatedAtMillis > lastSeen) {
-            const statusMessage = getStatusMessage(apt.status);
+          // For admins: always show pending items
+          if (isAdmin) {
             items.push({
               id: apt.id,
-              type: "appointment_status_change",
-              title: statusMessage.title,
-              message: `${apt.serviceName} • ${statusMessage.body}`,
-              timestamp: updatedAtMillis,
+              type: "appointment_pending",
+              title: "Nueva cita solicitada",
+              message: `${apt.serviceName} • ${new Date(parseToMillis(apt.requestedStartAt)).toLocaleDateString("es-MX")}`,
+              timestamp: parseToMillis(apt.createdAt),
               appointment: apt,
             });
+          } else {
+            // For users: only show if updated after lastSeen
+            if (updatedAtMillis > lastSeen) {
+              const statusMessage = getStatusMessage(apt.status);
+              items.push({
+                id: apt.id,
+                type: "appointment_status_change",
+                title: statusMessage.title,
+                message: `${apt.serviceName} • ${statusMessage.body}`,
+                timestamp: updatedAtMillis,
+                appointment: apt,
+              });
+            }
           }
-        }
-      });
+        });
 
-      setNotifications(items);
-    });
+        setNotifications(items);
+      },
+      (error) => {
+        console.error("useDerivedNotifications appointments snapshot error:", error);
+        setNotifications([]);
+      }
+    );
 
     return unsubscribe;
   }, [isAdmin, userId, lastSeen]);

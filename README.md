@@ -150,17 +150,26 @@ The app requires specific composite indexes for efficient queries. These are def
    - Used in: BookingsScreen, MyAppointmentsScreen, CalendarScreen
    - Allows users to view their appointments sorted by date
 
-2. **Admin appointments query**: `status` (ASC) + `requestedStartAt` (ASC/DESC)
+2. **User notifications query**: `userId` (ASC) + `updatedAt` (DESC)
+   - Used in: notification hooks for tracking appointment updates
+   - Allows users to see appointment changes
+
+3. **Admin appointments query**: `status` (ASC) + `requestedStartAt` (ASC/DESC)
    - Used in: AdminAppointmentsScreen
    - Allows admins to filter appointments by status and sort by date
 
-3. **Day lookup query**: `dayKey` (ASC) + `status` (ASC)
+4. **Admin notifications query**: `status` (ASC) + `createdAt` (DESC)
+   - Used in: notification hooks for tracking pending appointment requests
+   - Allows admins to see new appointment requests
+
+5. **Day lookup query**: `dayKey` (ASC) + `status` (ASC)
    - Used for calendar day views and status filtering
 
 If you encounter "The query requires an index" errors:
-- Check that `firestore.indexes.json` is deployed
+- Check that `firestore.indexes.json` is deployed: `firebase deploy --only firestore:indexes`
 - Verify query field order matches the index definition
 - Use Firebase Console to create indexes from error messages
+- Note: Index creation can take several minutes
 
 ## Running the App
 
