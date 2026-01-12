@@ -16,19 +16,35 @@ export function MyAppointmentsScreen() {
   const { handlePayDeposit, paymentLoading } = usePaymentHandler();
 
   useEffect(() => {
-    if (!user) return;
+    // Guard: Don't attempt query until user is hydrated
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    // Firestore composite index required: userId (ASC) + requestedStartAt (DESC)
+    // Ensure index exists in firestore.indexes.json
     const q = query(
       collection(db, "appointments"),
       where("userId", "==", user.uid),
       orderBy("requestedStartAt", "desc")
     );
-    const unsub = onSnapshot(q, snap => {
-      const rows: Appointment[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-      setItems(rows);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Appointment[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        setItems(rows);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("MyAppointmentsScreen snapshot error:", error);
+        setLoading(false);
+        // Keep UI state consistent on error
+        setItems([]);
+      }
+    );
     return unsub;
-  }, [user]);
+  }, [user?.uid]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

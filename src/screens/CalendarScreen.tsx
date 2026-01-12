@@ -52,13 +52,20 @@ function getAppointmentDateValue(a: any) {
 
 export function CalendarScreen() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [items, setItems] = React.useState<Appointment[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedDay, setSelectedDay] = React.useState<string>(new Date().toISOString().slice(0, 10));
 
   React.useEffect(() => {
-    if (!user) return;
+    // Guard: Don't attempt query until user is hydrated
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
 
+    // Firestore composite index required: userId (ASC) + requestedStartAt (DESC or ASC)
+    // Ensure index exists in firestore.indexes.json
     const qy = query(collection(db, "appointments"), where("userId", "==", user.uid));
     const unsub = onSnapshot(
       qy,
@@ -70,6 +77,8 @@ export function CalendarScreen() {
       (err) => {
         console.error("CalendarScreen snapshot error:", err);
         setLoading(false);
+        // Keep UI state consistent on error
+        setItems([]);
       }
     );
 

@@ -45,6 +45,8 @@ export function AdminAppointmentsScreen() {
   });
 
   useEffect(() => {
+    // Admin appointments query: status filter + requestedStartAt ordering
+    // Firestore composite index required: status (ASC) + requestedStartAt (DESC)
     const q = selectedStatus === "all" 
       ? query(collection(db, "appointments"), orderBy("requestedStartAt", "desc"))
       : query(
@@ -53,11 +55,19 @@ export function AdminAppointmentsScreen() {
           orderBy("requestedStartAt", "desc")
         );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
-      setAppointments(items);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
+        setAppointments(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("AdminAppointmentsScreen snapshot error:", error);
+        setLoading(false);
+        setAppointments([]);
+      }
+    );
 
     return unsub;
   }, [selectedStatus]);

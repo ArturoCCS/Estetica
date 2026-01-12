@@ -21,15 +21,23 @@ export function PromosAdminScreen() {
 
   useEffect(() => {
     const q = query(collection(db, "promos"), orderBy("text"));
-    const unsub = onSnapshot(q, snap => {
-      const rows: Promo[] = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      })) as Promo[];
-      setPromos(rows);
-      setLoading(false);
-      setAdding(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Promo[] = snap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as Promo[];
+        setPromos(rows);
+        setLoading(false);
+        setAdding(false);
+      },
+      (error) => {
+        console.error("PromosAdminScreen snapshot error:", error);
+        setLoading(false);
+        setPromos([]);
+      }
+    );
     return unsub;
   }, []);
 
@@ -102,6 +110,6 @@ export function PromosAdminScreen() {
 const styles = StyleSheet.create({
   card: { gap: theme.spacing.sm },
   text: { fontWeight: "bold", fontSize: 16, marginBottom: 3 },
-  cta: { color: "#FA4376", fontWeight: "700", marginTop: 2 },
+  cta: { color: theme.colors.primary, fontWeight: "700", marginTop: 2 },
   promoImg: { width: 44, height: 44, borderRadius: 6, backgroundColor: "#eee" }
 });

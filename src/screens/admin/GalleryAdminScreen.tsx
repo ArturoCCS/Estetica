@@ -21,15 +21,23 @@ export function GalleryAdminScreen() {
 
   useEffect(() => {
     const q = query(collection(db, "gallery"), orderBy("imageUrl"));
-    const unsub = onSnapshot(q, snap => {
-      const rows: GalleryPhoto[] = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      })) as GalleryPhoto[];
-      setPhotos(rows);
-      setLoading(false);
-      setAdding(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: GalleryPhoto[] = snap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as GalleryPhoto[];
+        setPhotos(rows);
+        setLoading(false);
+        setAdding(false);
+      },
+      (error) => {
+        console.error("GalleryAdminScreen snapshot error:", error);
+        setLoading(false);
+        setPhotos([]);
+      }
+    );
     return unsub;
   }, []);
 

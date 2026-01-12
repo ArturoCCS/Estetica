@@ -13,14 +13,22 @@ export function ProfileScreen() {
   const [cupons, setCupons] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user) {
-      const ref = collection(db, "users", user.uid, "coupons");
-      const unsub = onSnapshot(ref, snap => {
+    // Guard: Don't attempt query until user is hydrated
+    if (!user?.uid) return;
+
+    const ref = collection(db, "users", user.uid, "coupons");
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
         setCupons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      });
-      return unsub;
-    }
-  }, [user]);
+      },
+      (error) => {
+        console.error("ProfileScreen coupons snapshot error:", error);
+        setCupons([]);
+      }
+    );
+    return unsub;
+  }, [user?.uid]);
 
   if (!user) return null;
 

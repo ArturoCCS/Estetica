@@ -29,14 +29,22 @@ export function ServicesAdminScreen() {
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsub = onSnapshot(q, snap => {
-      const rows: Service[] = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      })) as Service[];
-      setServices(rows);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: Service[] = snap.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        })) as Service[];
+        setServices(rows);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("ServicesAdminScreen snapshot error:", error);
+        setLoading(false);
+        setServices([]);
+      }
+    );
     return unsub;
   }, []);
 
