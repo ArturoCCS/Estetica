@@ -30,7 +30,6 @@ export function ServicesScreen() {
     return () => unsub();
   }, []);
 
-  // Extract unique categories
   const categories = useMemo(() => {
     const cats = new Set<string>();
     services.forEach(s => {
@@ -44,7 +43,6 @@ export function ServicesScreen() {
     return services.filter(s => typeof s.category === "string" && s.category === filter);
   }, [services, filter]);
 
-  // Responsive columns: 2 on mobile, 3-4 on web
   const isWeb = Platform.OS === "web";
   const numColumns = isWeb ? (WINDOW_WIDTH > 1024 ? 4 : 3) : 2;
   const cardWidth = isWeb 
@@ -53,13 +51,11 @@ export function ServicesScreen() {
 
   return (
     <View style={ss.container}>
-      {/* Header */}
       <View style={ss.header}>
         <Text style={ss.title}>Servicios</Text>
         <Text style={ss.subtitle}>Encuentra el servicio perfecto para ti</Text>
       </View>
 
-      {/* Filter pills */}
       {categories.length > 0 && (
         <View style={ss.filtersWrap}>
           <Pressable
@@ -203,16 +199,16 @@ const ss = StyleSheet.create({
     overflow: "hidden",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
+        boxShadowColor: "#000",
+        boxShadowOpacity: 0.08,
+        boxShadowRadius: 12,
+        boxShadowOffset: { width: 0, height: 4 },
       },
       android: { 
         elevation: 3 
       },
       web: {
-        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        boxboxShadow: "0 4px 12px rgba(0,0,0,0.08)",
       }
     }),
   },

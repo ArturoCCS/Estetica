@@ -42,12 +42,10 @@ export function ImageLightbox({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Botón de Cerrar (X) */}
         <Pressable onPress={onClose} style={styles.closeBtn}>
           <Ionicons name="close" size={28} color="#fff" />
         </Pressable>
 
-        {/* Imagen Actual */}
         <Image
           source={{ uri: currentImage.imageUrl }}
           style={{
@@ -57,7 +55,6 @@ export function ImageLightbox({
           resizeMode="contain"
         />
 
-        {/* Botón Anterior */}
         {hasPrev && (
           <Pressable
             onPress={() => onNavigate(selectedIndex - 1)}
@@ -68,7 +65,6 @@ export function ImageLightbox({
           </Pressable>
         )}
 
-        {/* Botón Siguiente */}
         {hasNext && (
           <Pressable
             onPress={() => onNavigate(selectedIndex + 1)}

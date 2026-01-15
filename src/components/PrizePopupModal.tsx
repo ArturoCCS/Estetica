@@ -28,10 +28,6 @@ export function PrizePopupModal({
           padding: 28,
           alignItems: "center",
           elevation: 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 9 },
-          shadowOpacity: 0.19,
-          shadowRadius: 15,
         }}>
           <LottieView source={require("../../assets/lottie/confetti.json")} autoPlay loop={false} style={{ width: 160, height: 160 }} />
           <Text style={{ fontSize: 30, fontWeight:"bold", color: "#FA4376", marginTop: 14, marginBottom: 15 }}>¡Ganaste!</Text>

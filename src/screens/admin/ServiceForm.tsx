@@ -1,7 +1,8 @@
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 
+import { AppAlert } from "../../components/AppAlert";
 import { Button } from "../../components/Button";
 import { EditableImageUrlList } from "../../components/EditableImageUrlList";
 import { HeaderBack } from "../../components/HeaderBack";
@@ -9,20 +10,16 @@ import { Screen } from "../../components/Screen";
 import { TextField } from "../../components/TextField";
 import { db } from "../../lib/firebase";
 
-/**
- * Valores que maneja el formulario (strings porque vienen de inputs).
- * OJO: duration y price pueden quedar vacíos => se guardan como null para "por valoración".
- */
 export type ServiceFormValues = {
   name: string;
   description: string;
   category?: string;
-  durationMin: string; // minutos
-  durationMax: string; // minutos
-  price: string;       // MXN
-  imageUrl?: string;    // backward compatibility
-  heroImageUrl: string; // primary hero image
-  galleryUrls?: string[]; // ✅ mini landing gallery (links)
+  durationMin: string;
+  durationMax: string;
+  price: string;
+  imageUrl?: string;
+  heroImageUrl: string;
+  galleryUrls?: string[];
 };
 
 export type ServiceFormProps = {
@@ -38,18 +35,25 @@ function toNumberOrNull(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormProps) {
+export function ServiceForm({
+  serviceId,
+  initialValues,
+  onDone,
+}: ServiceFormProps) {
   const isWeb = Platform.OS === "web";
   const maxWidthStyle = useMemo<ViewStyle | null>(
     () => (isWeb ? { maxWidth: 920, alignSelf: "center", width: "100%" } : null),
     [isWeb]
   );
 
-  // console.log("Category:", initialValues.category);
-  
-  console.log("Todo:", initialValues);
+  const [alert, setAlert] = useState<{
+    title?: string;
+    msg: string;
+  } | null>(null);
 
-  // Estado local desde initialValues
+  const showAlert = (msg: string, title?: string) =>
+    setAlert({ msg, title });
+
   const [name, setName] = useState(initialValues.name ?? "");
   const [description, setDescription] = useState(initialValues.description ?? "");
   const [category, setCategory] = useState(initialValues.category ?? "");
@@ -57,48 +61,61 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
   const [durationMax, setDurationMax] = useState(initialValues.durationMax ?? "");
   const [price, setPrice] = useState(initialValues.price ?? "");
   const [heroImageUrl, setHeroImageUrl] = useState(initialValues.heroImageUrl ?? "");
-  const [galleryUrls, setGalleryUrls] = useState<string[]>(initialValues.galleryUrls ?? []);
+  const [galleryUrls, setGalleryUrls] = useState<string[]>(
+    initialValues.galleryUrls ?? []
+  );
 
   const [saving, setSaving] = useState(false);
 
-  // ✅ CORRECCIÓN: Sincronizar estado cuando initialValues cambian (vienen de la BD)
   useEffect(() => {
-    if (initialValues) {
-      setName(initialValues.name ?? "");
-      setDescription(initialValues.description ?? "");
-      setCategory(initialValues.category ?? "");
-      setDurationMin(initialValues.durationMin ?? "");
-      setDurationMax(initialValues.durationMax ?? "");
-      setPrice(initialValues.price ?? "");
-      setHeroImageUrl(initialValues.heroImageUrl ?? "");
-      setGalleryUrls(initialValues.galleryUrls ?? []);
-    }
+    setName(initialValues.name ?? "");
+    setDescription(initialValues.description ?? "");
+    setCategory(initialValues.category ?? "");
+    setDurationMin(initialValues.durationMin ?? "");
+    setDurationMax(initialValues.durationMax ?? "");
+    setPrice(initialValues.price ?? "");
+    setHeroImageUrl(initialValues.heroImageUrl ?? "");
+    setGalleryUrls(initialValues.galleryUrls ?? []);
   }, [initialValues]);
 
   async function handleSave() {
     if (saving) return;
 
     const n = name.trim();
-    if (!n) return Alert.alert("Nombre requerido", "Escribe el título del servicio.");
+    if (!n) {
+      showAlert("Escribe el título del servicio.", "Nombre requerido");
+      return;
+    }
 
-    // Validaciones numéricas (solo si hay texto)
     const dMin = toNumberOrNull(durationMin);
     const dMax = toNumberOrNull(durationMax);
     const p = toNumberOrNull(price);
 
-    if (durationMin.trim() && dMin === null) return Alert.alert("Duración min inválida");
-    if (durationMax.trim() && dMax === null) return Alert.alert("Duración max inválida");
-    if (price.trim() && p === null) return Alert.alert("Precio inválido");
-
+    if (durationMin.trim() && dMin === null) {
+      showAlert("Duración mínima inválida");
+      return;
+    }
+    if (durationMax.trim() && dMax === null) {
+      showAlert("Duración máxima inválida");
+      return;
+    }
+    if (price.trim() && p === null) {
+      showAlert("Precio inválido");
+      return;
+    }
     if (dMin !== null && dMax !== null && dMax < dMin) {
-      return Alert.alert("Duración inválida", "La duración máxima no puede ser menor a la mínima.");
+      showAlert(
+        "La duración máxima no puede ser menor a la mínima.",
+        "Duración inválida"
+      );
+      return;
     }
 
     setSaving(true);
     try {
-      // Importante: como el admin edita desde app, aquí estás escribiendo directo Firestore.
       const heroUrl = heroImageUrl.trim() || null;
-      const payload: any = {
+
+      await updateDoc(doc(db, "services", serviceId), {
         name: n,
         description: description.trim() || null,
         category: category.trim() || null,
@@ -106,95 +123,106 @@ export function ServiceForm({ serviceId, initialValues, onDone }: ServiceFormPro
         durationMax: dMax,
         price: p,
         heroImageUrl: heroUrl,
-        imageUrl: heroUrl, // backward compatibility
-
-        // ✅ mini landing gallery
+        imageUrl: heroUrl,
         galleryUrls: (galleryUrls ?? []).filter(Boolean),
-
         updatedAt: serverTimestamp(),
-      };
+      });
 
-      await updateDoc(doc(db, "services", serviceId), payload);
-
-      Alert.alert("Listo", "Servicio actualizado.");
-      onDone?.();
+      showAlert("Servicio actualizado correctamente.", "Listo");
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "No se pudo guardar el servicio.");
+      showAlert(e?.message ?? "No se pudo guardar el servicio.", "Error");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Screen scroll contentContainerStyle={[styles.page, maxWidthStyle]}>
-      <HeaderBack title="Editar servicio" />
+    <>
+      <Screen scroll contentContainerStyle={[styles.page, maxWidthStyle]}>
+        <HeaderBack title="Editar servicio" />
 
-      <View style={styles.heroCard}>
-        <Text style={styles.heroTitle}>Mini landing del servicio</Text>
-        <Text style={styles.heroSub}>
-          Portada, descripción y galería (por links). Precio/tiempo se pueden omitir si es por valoración.
-        </Text>
-      </View>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Mini landing del servicio</Text>
+          <Text style={styles.heroSub}>
+            Portada, descripción y galería. Precio/tiempo se pueden omitir si es
+            por valoración.
+          </Text>
+        </View>
 
-      <View style={[styles.card, styles.soft]}>
-        <TextField label="Título" value={name} onChangeText={setName} placeholder="Ej. Limpieza facial" />
-        <TextField
-          label="Descripción"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Describe el servicio…"
-          multiline
-        />
-        <TextField
-          label="Categoría (opcional)"
-          value={category}
-          onChangeText={setCategory}
-          placeholder="Ej. Faciales"
-        />
-        <TextField
-          label="Imagen principal / Hero (URL)"
-          value={heroImageUrl}
-          onChangeText={setHeroImageUrl}
-          placeholder="https://..."
-          autoCapitalize="none"
-        />
-      </View>
+        <View style={[styles.card, styles.soft]}>
+          <TextField label="Título" value={name} onChangeText={setName} />
+          <TextField
+            label="Descripción"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+          <TextField
+            label="Categoría (opcional)"
+            value={category}
+            onChangeText={setCategory}
+          />
+          <TextField
+            label="Imagen principal / Hero (URL)"
+            value={heroImageUrl}
+            onChangeText={setHeroImageUrl}
+            autoCapitalize="none"
+          />
+        </View>
 
-      <View style={[styles.card, styles.soft]}>
-        <EditableImageUrlList value={galleryUrls} onChange={setGalleryUrls} label="Galería (URLs)" />
-      </View>
+        <View style={[styles.card, styles.soft]}>
+          <EditableImageUrlList
+            value={galleryUrls}
+            onChange={setGalleryUrls}
+            label="Galería (URLs)"
+          />
+        </View>
 
-      <View style={[styles.card, styles.soft]}>
-        <Text style={styles.sectionTitle}>Tiempo / Costo (opcionales)</Text>
-        <Text style={styles.hint}>Déjalos vacíos si depende de valoración.</Text>
+        <View style={[styles.card, styles.soft]}>
+          <Text style={styles.sectionTitle}>Tiempo / Costo</Text>
+          <Text style={styles.hint}>Déjalos vacíos si es por valoración.</Text>
 
-        <View style={styles.row2}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.row2}>
             <TextField
               label="Duración min (min)"
               value={durationMin}
               onChangeText={setDurationMin}
               keyboardType="numeric"
-              placeholder="60"
             />
-          </View>
-          <View style={{ flex: 1 }}>
             <TextField
               label="Duración max (min)"
               value={durationMax}
               onChangeText={setDurationMax}
               keyboardType="numeric"
-              placeholder="90"
             />
           </View>
+
+          <TextField
+            label="Precio (MXN)"
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="numeric"
+          />
         </View>
 
-        <TextField label="Precio (MXN)" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="450" />
-      </View>
+        <Button
+          title={saving ? "Guardando..." : "Guardar cambios"}
+          onPress={handleSave}
+          disabled={saving}
+        />
+        <Button title="Cancelar" variant="secondary" onPress={() => { onDone?.(); }} />
+      </Screen>
 
-      <Button title={saving ? "Guardando..." : "Guardar cambios"} onPress={handleSave} disabled={saving} />
-      <Button title="Cancelar" variant="secondary" onPress={() => onDone?.()} />
-    </Screen>
+      <AppAlert
+        visible={!!alert}
+        title={alert?.title}
+        message={alert?.msg ?? ""}
+        onClose={() => {
+          setAlert(null);
+          onDone?.();
+        }}
+      />
+    </>
   );
 }
 

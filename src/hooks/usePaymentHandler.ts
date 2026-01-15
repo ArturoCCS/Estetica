@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
-import { Alert } from "react-native";
 import { useState } from "react";
+import { Alert } from "react-native";
 
 export function usePaymentHandler() {
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
@@ -37,7 +37,6 @@ export function usePaymentHandler() {
         throw new Error("Respuesta inválida del servicio de pagos");
       }
 
-      // Open Mercado Pago checkout in browser
       await WebBrowser.openBrowserAsync(initPoint);
       
       Alert.alert(

@@ -1,9 +1,24 @@
-import React from "react";
-import { StyleSheet, View, ViewProps } from "react-native";
+import React, { ReactNode } from "react";
+import { StyleSheet, Text, View, ViewProps } from "react-native";
 import { theme } from "../theme/theme";
 
-export function Card({ style, ...props }: ViewProps) {
-  return <View {...props} style={[styles.card, style]} />;
+type CardProps = ViewProps & {
+  children?: ReactNode;
+};
+
+export function Card({ style, children, ...props }: CardProps) {
+  const wrapTextNodes = (node: ReactNode): ReactNode => {
+    if (node === null || node === undefined) return null;
+    if (typeof node === "string" || typeof node === "number") return <Text>{node}</Text>;
+    if (Array.isArray(node)) return node.map((child, i) => <React.Fragment key={i}>{wrapTextNodes(child)}</React.Fragment>);
+    return node;
+  };
+
+  return (
+    <View {...props} style={[styles.card, style]}>
+      {wrapTextNodes(children)}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -12,6 +27,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    padding: theme.spacing.md
-  }
+    padding: theme.spacing.md,
+  },
 });

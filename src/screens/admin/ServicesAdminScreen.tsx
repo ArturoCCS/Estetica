@@ -2,12 +2,13 @@ import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { db } from "../../lib/firebase";
 import { theme } from "../../theme/theme";
+import { confirmDelete } from "../../utils/confirmDelete";
 import { ServiceForm } from "./ServiceForm";
 
 type Service = {
@@ -41,17 +42,17 @@ export function ServicesAdminScreen() {
     return unsub;
   }, []);
 
-  const handleDelete = async (id: string) => {
-    Alert.alert("Eliminar", "¿Estás seguro de borrar este servicio?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sí, borrar", style: "destructive", onPress: async () => {
-        await deleteDoc(doc(db, "services", id));
-        setEditing(null);
-      } }
-    ]);
-  };
+const handleDelete = (id: string) => {
+  confirmDelete(
+    "Eliminar",
+    "¿Estás seguro de borrar este servicio?",
+    async () => {
+      await deleteDoc(doc(db, "services", id));
+      setEditing(null);
+    }
+  );
+};
 
-  // EDICIÓN EN MODAL SIMPLE (O apilas el formulario arriba)
   if (editing) {
     return (
       <ServiceForm

@@ -16,7 +16,6 @@ function injectWebScrollbarCSS() {
   if (injectedWebScrollbarCSS) return;
   injectedWebScrollbarCSS = true;
   const css = `
-  /* Web scrollbar - más visible y limpio */
   ::-webkit-scrollbar { width: 18px; height: 14px; }
   ::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); }
   ::-webkit-scrollbar-thumb {
@@ -27,7 +26,6 @@ function injectWebScrollbarCSS() {
   }
   ::-webkit-scrollbar-thumb:hover { background: rgba(17, 24, 39, 0.42); }
 
-  /* Firefox */
   * { scrollbar-width: auto; scrollbar-color: rgba(17,24,39,0.35) rgba(0,0,0,0.03); }
   `;
 
@@ -66,7 +64,6 @@ export function Screen({ children, style, scroll = false, contentContainerStyle 
           contentContainerStyle,
           style,
         ]}
-        // ✅ show indicator on web; keep hidden on native
         showsVerticalScrollIndicator={Platform.OS === "web"}
         keyboardShouldPersistTaps="handled"
       >

@@ -1,11 +1,11 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
-import LottieView from "lottie-react-native"; // Instala con npm/yarn
+import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View } from "react-native";
-import { Button } from "../components/Button"; // Ajusta si usas otro botón
+import { Button } from "../components/Button";
 import { HeaderBack } from "../components/HeaderBack";
-import WheelOfFortune from "../components/WheelOfFortune"; // Instala con npm/yarn
+import WheelOfFortune from "../components/WheelOfFortune";
 import { db } from "../lib/firebase";
 import { RootStackParamList } from "../navigation/types";
 import { useAuth } from "../providers/AuthProvider";
@@ -26,7 +26,6 @@ export function PromoRouletteScreen() {
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Check if user already has a coupon for this promo (any code)
   useEffect(() => {
     const checkClaimed = async () => {
       if (!user) return;
@@ -41,7 +40,6 @@ export function PromoRouletteScreen() {
   }, [user]);
 
 const handleFinish = (reward: string, winnerIndex: number) => {
-  // Busca el premio por label o usa el índice (ajusta según tu estructura de datos)
   const idx = prizes.findIndex(p => p.label === reward);
   setCurrentPrize(prizes[idx]);
   setShowPrizeModal(true);
@@ -53,7 +51,7 @@ const handleFinish = (reward: string, winnerIndex: number) => {
 
     try {
       const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + 7); // Cupón válido por 7 días
+      expirationDate.setDate(expirationDate.getDate() + 7);
       await addDoc(collection(db, "users", user.uid, "coupons"), {
         promoId,
         code: currentPrize.code,
@@ -107,9 +105,6 @@ const handleFinish = (reward: string, winnerIndex: number) => {
           backgroundColor: "#f8f8f8",
           onRef: ref => (wheelRef.current = ref),
           colors: ["#FA4376", "#FFE169", "#CCF5AC", "#9EC9F7", "#ED9D8D", "#C2C2F0"],
-          // Si en tu componente WheelOfFortune aceptas estos props, pásalos aquí:
-          // winnerBackgroundColor: "#62FF8C",
-          // textStyle: { fontSize: 18, fontWeight: "bold" },
         }}
         getWinner={handleFinish}
       />
@@ -119,7 +114,6 @@ const handleFinish = (reward: string, winnerIndex: number) => {
         style={{ marginTop: 28 }}
       />
 
-      {/* PREMIO MODAL */}
       <Modal visible={showPrizeModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.prizeBox}>
@@ -143,7 +137,6 @@ const handleFinish = (reward: string, winnerIndex: number) => {
         </View>
       </Modal>
 
-      {/* SUCCESS MODAL */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.prizeBox}>

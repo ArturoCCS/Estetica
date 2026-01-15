@@ -59,10 +59,10 @@ const s = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.08)",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
+        boxShadowColor: "#000",
+        boxShadowOpacity: 0.08,
+        boxShadowRadius: 12,
+        boxShadowOffset: { width: 0, height: 6 },
       },
       android: { elevation: 2 },
       default: {},

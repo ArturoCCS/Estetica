@@ -1,238 +1,204 @@
-/**
- * NotificationsScreen - Inbox for in-app notifications
- * 
- * Shows derived notifications from appointments:
- * - Admin: pending appointment requests (status='requested')
- * - User: appointment status changes and updates
- */
-
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useEffect } from "react";
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import React from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  Platform,
-  Pressable,
+  StatusBar,
   StyleSheet,
   Text,
-  View,
-} from "react-native";
-import { HeaderBack } from "../components/HeaderBack";
-import { Screen } from "../components/Screen";
-import { DerivedNotification, updateLastSeen, useDerivedNotifications } from "../lib/notifications-derived";
-import { RootStackParamList } from "../navigation/types";
-import { useAuth } from "../providers/AuthProvider";
-import { theme } from "../theme/theme";
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { HeaderBack } from '../components/HeaderBack';
+import { useNotifications } from '../providers/NotificationsProvider';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+export default function NotificationsScreen() {
+  const { notifications, deleteNotification, markAsRead, markAllAsRead } = useNotifications();
+  const navigation = useNavigation<any>();
 
-export function NotificationsScreen() {
-  const { user, isAdmin } = useAuth();
-  const navigation = useNavigation<NavigationProp>();
-  const notifications = useDerivedNotifications(isAdmin, user?.uid || null);
-  const [loading, setLoading] = React.useState(true);
+  const handlePress = (notification: any) => {
+    markAsRead(notification.id);
+    if (notification.route?.screen) {
+      const screenName = notification.route.screen;
+      const params = notification.route.params;
 
-  // Mark as read when screen opens (for non-admin users)
-  useEffect(() => {
-    if (user && !isAdmin) {
-      updateLastSeen(user.uid);
-    }
-  }, [user, isAdmin]);
-
-  // Stop loading after a brief moment
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleNotificationPress = (notification: DerivedNotification) => {
-    if (isAdmin) {
-      // Navigate to admin appointments screen
-      navigation.navigate("AdminAppointments");
-    } else {
-      // Navigate to user bookings screen
-      navigation.navigate("Main", { screen: "Bookings" });
+      if (screenName === "Agenda" || screenName === "Admin") {
+        navigation.navigate("Main", { screen: screenName, params });
+      } else {
+        navigation.navigate(screenName, params);
+      }
     }
   };
 
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = Date.now();
-    const diffMs = now - timestamp;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const renderItem = ({ item }: { item: any }) => {
+    const date = item.createdAt?.seconds 
+      ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() 
+      : '';
 
-    if (diffMins < 1) return "Justo ahora";
-    if (diffMins < 60) return `Hace ${diffMins}m`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays < 7) return `Hace ${diffDays}d`;
-    
-    return date.toLocaleDateString("es-MX", { 
-      month: "short", 
-      day: "numeric",
-      ...(date.getFullYear() !== new Date().getFullYear() && { year: "numeric" })
-    });
-  };
-
-  const renderNotification = ({ item }: { item: DerivedNotification }) => {
-    const shouldShowAsUnread = !isAdmin; // For users, items in this list are considered unread
-    
     return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.notificationItem,
-          shouldShowAsUnread && styles.notificationItemUnread,
-          pressed && styles.notificationItemPressed,
-        ]}
-        onPress={() => handleNotificationPress(item)}
-      >
-        <View style={styles.notificationIcon}>
-          <Ionicons
-            name={item.type === "appointment_pending" ? "calendar-outline" : "checkmark-circle-outline"}
-            size={24}
-            color={theme.colors.primary}
-          />
-        </View>
+      <View style={[styles.card, !item.read && styles.unreadCard]}>
+        {!item.read && <View style={styles.unreadDot} />}
         
-        <View style={styles.notificationContent}>
-          <View style={styles.notificationHeader}>
-            <Text style={styles.notificationTitle} numberOfLines={1}>
+        <TouchableOpacity 
+          style={styles.contentContainer} 
+          onPress={() => handlePress(item)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, !item.read && styles.unreadText]}>
               {item.title}
             </Text>
-            <Text style={styles.notificationTime}>
-              {formatTimestamp(item.timestamp)}
-            </Text>
+            <Text style={styles.dateText}>{date}</Text>
           </View>
-          
-          <Text style={styles.notificationMessage} numberOfLines={2}>
+          <Text style={styles.message} numberOfLines={2}>
             {item.message}
           </Text>
-        </View>
-      </Pressable>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => deleteNotification(item.id)}
+          style={styles.deleteButton}
+          hitSlop={15}
+        >
+          <Ionicons name="trash-outline" size={20} color="#a1a1aa" />
+        </TouchableOpacity>
+      </View>
     );
   };
 
   return (
-    <Screen>
-      <HeaderBack title="Notificaciones"/>
-      
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <HeaderBack title="Notificaciones" />
+
+      {notifications.length > 0 && (
+        <View style={styles.screenHeader}>
+          <TouchableOpacity onPress={markAllAsRead} style={styles.markAllButton}>
+            <Text style={styles.markAllText}>Leer todas</Text>
+          </TouchableOpacity>
         </View>
-      ) : notifications.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyText}>No hay notificaciones</Text>
-          <Text style={styles.emptySubtext}>
-            {isAdmin 
-              ? "Las citas solicitadas aparecerán aquí" 
-              : "Las actualizaciones de tus citas aparecerán aquí"}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          renderItem={renderNotification}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
       )}
-    </Screen>
+
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="notifications-off-outline" size={64} color="#d4d4d8" />
+            <Text style={styles.emptyTitle}>Todo al día</Text>
+            <Text style={styles.emptySubtitle}>No tienes notificaciones nuevas por ahora.</Text>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  container: {
+    marginHorizontal: 10,
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#f5f5f7',
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 40,
-    paddingBottom: 100,
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    alignItems: 'flex-end',
+    backgroundColor: 'transparent',
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#6b7280",
-    marginTop: 16,
+  markAllButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-    marginTop: 8,
+  markAllText: {
+    color: '#6b7280',
+    fontWeight: '500',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   listContent: {
-    paddingBottom: 30,
-  },
-  notificationItem: {
-    flexDirection: "row",
     padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
-    gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-      web: {
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      },
-    }),
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  notificationItemUnread: {
-    backgroundColor: "#fef3f5",
+  unreadCard: {
+    backgroundColor: '#f9f9f9',
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: '#4b5563',
   },
-  notificationItemPressed: {
-    opacity: 0.7,
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4b5563',
+    position: 'absolute',
+    left: 8,
+    top: 20,
   },
-  notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fef3f5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  notificationContent: {
+  contentContainer: {
     flex: 1,
-    gap: 4,
+    marginLeft: 12,
   },
-  notificationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
   },
-  notificationTitle: {
+  title: {
     fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text,
+    fontWeight: '600',
+    color: '#374151',
     flex: 1,
+    marginRight: 8,
   },
-  notificationTime: {
-    fontSize: 12,
-    color: "#9ca3af",
+  unreadText: {
+    color: '#111827',
+    fontWeight: '700',
   },
-  notificationMessage: {
+  dateText: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  message: {
     fontSize: 14,
-    color: "#6b7280",
+    color: '#6b7280',
     lineHeight: 20,
+  },
+  deleteButton: {
+    padding: 6,
+    marginLeft: 10,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 120,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 6,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });

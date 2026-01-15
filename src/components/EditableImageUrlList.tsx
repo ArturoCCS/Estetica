@@ -37,6 +37,7 @@ export function EditableImageUrlList({
     ]);
   }
 
+
   function move(i: number, dir: -1 | 1) {
     const j = i + dir;
     if (j < 0 || j >= items.length) return;

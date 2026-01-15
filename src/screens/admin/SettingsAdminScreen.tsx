@@ -15,6 +15,17 @@ import { theme } from "../../theme/theme";
 import { BusinessDayKey, GlobalSettings } from "../../types/settings";
 
 const dayOrder: BusinessDayKey[] = ["mon","tue","wed","thu","fri","sat","sun"];
+
+const dayLabels: Record<BusinessDayKey, string> = {
+  mon: "Lunes",
+  tue: "Martes",
+  wed: "Miércoles",
+  thu: "Jueves",
+  fri: "Viernes",
+  sat: "Sábado",
+  sun: "Domingo"
+};
+
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:mm");
 
 const schema = z.object({
@@ -165,7 +176,7 @@ export function SettingsAdminScreen() {
           <Text style={{ fontWeight: "800", fontSize: 16 }}>Horarios</Text>
           {fields.map((f, idx) => (
             <View key={f.id} style={{ gap: 6, borderTopWidth: 1, borderColor: theme.colors.border, paddingTop: 8, marginTop: 8 }}>
-              <Text style={{ fontWeight: "700" }}>{f.key.toUpperCase()}</Text>
+              <Text style={{ fontWeight: "700" }}>{dayLabels[f.key]}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <Text>Habilitado</Text>
                 <Switch value={f.enabled} onValueChange={(v) => update(idx, { ...f, enabled: v })} />

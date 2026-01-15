@@ -1,12 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import React, { useEffect } from "react";
+import {
+  addDoc,
+  collection,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 import { z } from "zod";
 
 import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
+import { AppAlert } from "../../components/AppAlert";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
@@ -19,6 +26,7 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
 type Props = {
   initialValues?: Partial<FormValues>;
   galleryId?: string;
@@ -27,16 +35,27 @@ type Props = {
 
 export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
   const navigation = useNavigation();
+
+  const [alert, setAlert] = useState<{ title?: string; msg: string } | null>(
+    null
+  );
+
+  function showAlert(msg: string, title?: string) {
+    setAlert({ title, msg });
+  }
+
   const { control, handleSubmit, formState, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       imageUrl: "",
-      ...initialValues
-    }
+      ...initialValues,
+    },
   });
 
   useEffect(() => {
-    if (initialValues) reset({ ...initialValues });
+    if (initialValues) {
+      reset({ ...initialValues });
+    }
   }, [initialValues]);
 
   const onSubmit = async (values: FormValues) => {
@@ -45,24 +64,33 @@ export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
         imageUrl: values.imageUrl.trim(),
         updatedAt: serverTimestamp(),
       };
+
       if (galleryId) {
         await updateDoc(doc(db, "gallery", galleryId), payload);
-        Alert.alert("Listo", "Foto editada");
+        showAlert("Foto editada correctamente", "Listo");
       } else {
-        await addDoc(collection(db, "gallery"), { ...payload, createdAt: serverTimestamp() });
-        Alert.alert("Listo", "Foto agregada a galería");
+        await addDoc(collection(db, "gallery"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+        showAlert("Foto agregada a la galería", "Listo");
         reset();
       }
-      onDone();
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "No se pudo guardar");
+      showAlert(e?.message ?? "No se pudo guardar", "Error");
     }
+  };
+
+  const handleAlertClose = () => {
+    setAlert(null);
+    onDone();
   };
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <HeaderBack />
+
         <Card style={{ gap: theme.spacing.md }}>
           <Controller
             control={control}
@@ -72,14 +100,26 @@ export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
                 label="URL de la imagen"
                 value={value}
                 onChangeText={onChange}
-                placeholder="https://ejemplo.com/galery.jpg"
+                placeholder="https://ejemplo.com/gallery.jpg"
                 error={formState.errors.imageUrl?.message}
+                autoCapitalize="none"
               />
             )}
           />
-          <Button title={galleryId ? "Guardar cambios" : "Agregar"} onPress={handleSubmit(onSubmit)} />
+
+          <Button
+            title={galleryId ? "Guardar cambios" : "Agregar"}
+            onPress={handleSubmit(onSubmit)}
+          />
         </Card>
       </ScrollView>
+
+      <AppAlert
+        visible={!!alert}
+        title={alert?.title}
+        message={alert?.msg ?? ""}
+        onClose={handleAlertClose}
+      />
     </Screen>
   );
 }

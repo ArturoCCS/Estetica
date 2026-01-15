@@ -7,7 +7,6 @@ import type { FlexAlignType, ViewStyle } from "react-native";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { HeaderBack } from "../components/HeaderBack";
-// Asegúrate de que la ruta de importación sea correcta:
 import { ImageLightbox } from "../components/ImageLightbox";
 import { Screen } from "../components/Screen";
 import { db } from "../lib/firebase";
@@ -24,7 +23,6 @@ export function ServiceDetailScreen() {
 
   const [service, setService] = useState<Service | null>(null);
 
-  // ESTADO PARA EL LIGHTBOX
   const [isLightboxVisible, setLightboxVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -55,7 +53,6 @@ export function ServiceDetailScreen() {
   const hero = service.heroImageUrl || service.imageUrl;
   const gallery = (service.galleryUrls ?? []).filter(Boolean);
 
-  // Transformamos las URLs simples al formato que pide el Lightbox { id, imageUrl }
   const lightboxImages = gallery.map((url, index) => ({
     id: index.toString(),
     imageUrl: url,
@@ -70,7 +67,6 @@ export function ServiceDetailScreen() {
     <Screen scroll contentContainerStyle={[styles.page, containerStyle]}>
       <HeaderBack title={service.name} />
 
-      {/* Hero Section */}
       <View style={styles.heroWrap}>
         {hero ? (
           <Image source={{ uri: hero }} style={styles.heroImg} />
@@ -93,7 +89,6 @@ export function ServiceDetailScreen() {
         </View>
       </View>
 
-      {/* Galería */}
       {gallery.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resultados / Galería</Text>
@@ -111,7 +106,6 @@ export function ServiceDetailScreen() {
         </View>
       )}
 
-      {/* Descripción */}
       <View style={[styles.section, styles.softCard]}>
         <Text style={styles.sectionTitle}>Descripción</Text>
         <Text style={styles.bodyText}>
@@ -126,7 +120,6 @@ export function ServiceDetailScreen() {
         onPress={() => navigation.navigate("BookService", { serviceId: service.id } as any)}
       />
 
-      {/* COMPONENTE LIGHTBOX (Fuera del ScrollView o al final, para que cubra la pantalla) */}
       <ImageLightbox
         images={lightboxImages}
         selectedIndex={currentImageIndex}

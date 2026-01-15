@@ -1,7 +1,16 @@
-import { collection, onSnapshot, query, Timestamp, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import React from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
+
 import { HeaderBack } from "../components/HeaderBack";
 import { Screen } from "../components/Screen";
 import { db } from "../lib/firebase";
@@ -9,86 +18,109 @@ import { useAuth } from "../providers/AuthProvider";
 import { theme } from "../theme/theme";
 import { Appointment } from "../types/domain";
 
-function toJSDate(value: any): Date | null {
+function normalizeDate(value: any): Date | null {
   if (!value) return null;
-
-  // Firestore Timestamp
   if (value instanceof Timestamp) return value.toDate();
-
-  // Date object
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-
-  // millis
-  if (typeof value === "number") {
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  // ISO string
   if (typeof value === "string") {
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
+    if (isNaN(d.getTime())) return null;
+    return d;
   }
-
-  // Some apps accidentally store { seconds, nanoseconds }
   if (typeof value === "object" && typeof value.seconds === "number") {
-    const d = new Date(value.seconds * 1000);
-    return Number.isNaN(d.getTime()) ? null : d;
+    return new Date(value.seconds * 1000);
   }
-
   return null;
 }
 
-function toDateKeySafe(value: any): string | null {
-  const d = toJSDate(value);
+function toDateKeyUTC(value: any): string | null {
+  const d = normalizeDate(value);
   if (!d) return null;
-  return d.toISOString().slice(0, 10);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function getAppointmentDateValue(a: any) {
-  // Prefer finalStartAt if present, else requestedStartAt
   return a?.finalStartAt ?? a?.requestedStartAt ?? null;
 }
 
+function useUserMap(userIds: string[]) {
+  const [map, setMap] = React.useState<Record<string, any>>({});
+
+  React.useEffect(() => {
+    userIds.forEach(async (uid) => {
+      if (map[uid]) return;
+
+      const snap = await getDoc(doc(db, "users", uid));
+      if (snap.exists()) {
+        setMap((prev) => ({ ...prev, [uid]: snap.data() }));
+      }
+    });
+  }, [userIds.join("|")]);
+
+  return map;
+}
+
 export function CalendarScreen() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+
   const [items, setItems] = React.useState<Appointment[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [selectedDay, setSelectedDay] = React.useState<string>(new Date().toISOString().slice(0, 10));
+
+  const [selectedDay, setSelectedDay] = React.useState(() => {
+    const today = new Date();
+    return `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(today.getUTCDate()).padStart(2, "0")}`;
+  });
 
   React.useEffect(() => {
     if (!user) return;
 
-    const qy = query(collection(db, "appointments"), where("userId", "==", user.uid));
-    const unsub = onSnapshot(
-      qy,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Appointment[];
-        setItems(rows);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("CalendarScreen snapshot error:", err);
-        setLoading(false);
-      }
-    );
+    const qy = isAdmin
+      ? query(collection(db, "appointments"))
+      : query(collection(db, "appointments"), where("userId", "==", user.uid));
+
+    const unsub = onSnapshot(qy, (snap) => {
+      const rows = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as Appointment[];
+
+      setItems(rows);
+      setLoading(false);
+    });
 
     return unsub;
-  }, [user?.uid]);
+  }, [user?.uid, isAdmin]);
+
+  const adminUserIds = React.useMemo(
+    () => (isAdmin ? Array.from(new Set(items.map((i) => i.userId))) : []),
+    [items, isAdmin]
+  );
+  const userMap = useUserMap(adminUserIds);
+
 
   const markedDates = React.useMemo(() => {
     const marks: Record<string, any> = {};
 
     for (const a of items) {
-      const day = toDateKeySafe(getAppointmentDateValue(a));
+      const day = toDateKeyUTC(getAppointmentDateValue(a));
       if (!day) continue;
-      marks[day] = { ...(marks[day] || {}), marked: true, dotColor: "#fa4376" };
+
+      marks[day] = {
+        ...(marks[day] || {}),
+        marked: true,
+        dotColor: theme.colors.primary,
+      };
     }
 
     marks[selectedDay] = {
       ...(marks[selectedDay] || {}),
       selected: true,
-      selectedColor: "#fa4376",
+      selectedColor: theme.colors.primary,
     };
 
     return marks;
@@ -96,29 +128,28 @@ export function CalendarScreen() {
 
   const dayAppointments = React.useMemo(() => {
     return items
-      .filter((a) => {
-        const day = toDateKeySafe(getAppointmentDateValue(a));
-        return day === selectedDay;
-      })
-      .sort((a: any, b: any) => {
-        const da = toJSDate(getAppointmentDateValue(a))?.getTime() ?? 0;
-        const dbb = toJSDate(getAppointmentDateValue(b))?.getTime() ?? 0;
-        return da - dbb;
+      .filter((a) => toDateKeyUTC(getAppointmentDateValue(a)) === selectedDay)
+      .sort((a, b) => {
+        const da = normalizeDate(getAppointmentDateValue(a))?.getTime() ?? 0;
+        const db = normalizeDate(getAppointmentDateValue(b))?.getTime() ?? 0;
+        return da - db;
       });
   }, [items, selectedDay]);
 
   if (!user) {
     return (
       <Screen>
-        <HeaderBack title="Mi agenda" />
-        <Text style={{ color: theme.colors.muted }}>Inicia sesión para ver tu agenda.</Text>
+        <HeaderBack title="Agenda" />
+        <Text style={{ color: theme.colors.muted }}>
+          Inicia sesión para ver tu agenda.
+        </Text>
       </Screen>
     );
   }
 
   return (
     <Screen scroll>
-      <HeaderBack title="Mi agenda" />
+      <HeaderBack title={isAdmin ? "Agenda general" : "Mi agenda"} />
 
       <View style={s.card}>
         <Calendar
@@ -126,9 +157,9 @@ export function CalendarScreen() {
           markedDates={markedDates}
           enableSwipeMonths
           theme={{
-            todayTextColor: "#fa4376",
-            arrowColor: "#fa4376",
-            selectedDayBackgroundColor: "#fa4376",
+            todayTextColor: theme.colors.primary,
+            arrowColor: theme.colors.primary,
+            selectedDayBackgroundColor: theme.colors.primary,
           }}
         />
       </View>
@@ -136,50 +167,126 @@ export function CalendarScreen() {
       <Text style={s.sectionTitle}>Citas del día</Text>
 
       {loading ? (
-        <Text style={{ color: theme.colors.muted }}>Cargando…</Text>
+        <Text style={s.muted}>Cargando…</Text>
       ) : dayAppointments.length === 0 ? (
-        <Text style={{ color: "#888" }}>No tienes citas este día.</Text>
+        <Text style={s.muted}>No hay citas este día.</Text>
       ) : (
         <FlatList
           data={dayAppointments}
           keyExtractor={(a) => a.id}
           scrollEnabled={false}
-          contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
-          renderItem={({ item }) => {
-            const d = toJSDate(getAppointmentDateValue(item));
-            return (
-              <View style={s.item}>
-                <Text style={s.itemTitle}>{(item as any).serviceName ?? "Servicio"}</Text>
-                <Text style={s.itemSub}>{d ? d.toLocaleString("es-MX") : "Fecha inválida"}</Text>
-                <Text style={s.badge}>{(item as any).status ?? ""}</Text>
-              </View>
-            );
-          }}
+          contentContainerStyle={{ gap: theme.spacing.sm, paddingBottom: 20 }}
+          renderItem={({ item }) =>
+            isAdmin ? (
+              <AdminItem item={item} user={userMap[item.userId]} />
+            ) : (
+              <UserItem item={item} />
+            )
+          }
         />
       )}
     </Screen>
   );
 }
 
+function AdminItem({ item, user }: { item: Appointment; user: any }) {
+  const start = normalizeDate(item.finalStartAt);
+  const end = normalizeDate(item.finalEndAt);
+
+  return (
+    <View style={s.item}>
+      <Text style={s.time}>
+        {start?.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} –{" "}
+        {end?.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+      </Text>
+
+      <Text style={s.title}>{item.serviceName}</Text>
+
+      <Text style={s.sub}>Cliente: {user?.name ?? "Sin nombre"}</Text>
+      
+      <Text style={s.sub}>Contacto: {user?.phone ?? "Sin nombre"}</Text>
+      
+      <Text style={s.sub}>Tiempo estimado : {item.durationMinutes} min</Text>
+
+   
+      {item.price === undefined || item.price === null
+        ? (<Text style={s.sub}>Precio no asignado</Text>)
+        : (<Text style={s.sub}>Precio : ${item.price} MXN</Text>)}
+        
+        
+      {item.notes && <Text style={s.sub}>Nota : {item.notes}</Text>}
+      
+      <Text style={s.badge}>{item.status}</Text>
+    </View>
+  );
+}
+
+function UserItem({ item }: { item: Appointment }) {
+  const start = normalizeDate(item.finalStartAt);
+  const end = normalizeDate(item.finalEndAt);
+
+  return (
+    <View style={s.item}>
+      <Text style={s.title}>{item.serviceName}</Text>
+
+      <Text style={s.sub}>
+        {start?.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} –{" "}
+        {end?.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+      </Text>
+
+      <Text style={s.sub}>Tiempo estimado : {item.durationMinutes} min</Text>
+            
+      {item.price != null && <Text style={s.sub}>Precio : ${item.price} MXN</Text>}
+
+      {item.adminNotes && <Text style={s.sub}>Nota : {item.adminNotes}</Text>}
+      
+      <Text style={s.badge}>{item.status}</Text>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   card: {
-    borderRadius: 22,
+    borderRadius: theme.radius.lg,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: theme.colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
-    marginTop: 10,
+    borderColor: theme.colors.border,
+    marginTop: theme.spacing.sm,
   },
-  sectionTitle: { marginTop: 14, fontWeight: "900", fontSize: 16, color: "#111" },
+  sectionTitle: {
+    marginTop: theme.spacing.md,
+    fontWeight: "900",
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  muted: {
+    color: theme.colors.muted,
+    marginTop: theme.spacing.sm,
+  },
   item: {
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: "rgba(255,255,255,0.86)",
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: theme.colors.border,
     gap: 4,
   },
-  itemTitle: { fontWeight: "900", color: "#111" },
-  itemSub: { color: "#666" },
-  badge: { alignSelf: "flex-start", marginTop: 6, color: "#fa4376", fontWeight: "800" },
+  time: {
+    fontWeight: "900",
+    color: theme.colors.primary,
+  },
+  title: {
+    fontWeight: "900",
+    color: theme.colors.text,
+  },
+  sub: {
+    marginVertical: 2,
+    color: theme.colors.muted,
+  },
+  badge: {
+    marginTop: 6,
+    color: theme.colors.primaryDark,
+    fontWeight: "800",
+  },
 });

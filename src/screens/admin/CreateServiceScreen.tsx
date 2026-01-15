@@ -1,7 +1,9 @@
 import { useNavigation } from "@react-navigation/native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import React, { useState } from "react";
-import { Alert, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+
+import { AppAlert } from "../../components/AppAlert";
 import { Button } from "../../components/Button";
 import { EditableImageUrlList } from "../../components/EditableImageUrlList";
 import { HeaderBack } from "../../components/HeaderBack";
@@ -19,7 +21,9 @@ function toNumberOrNull(v: string): number | null {
 export function CreateServiceScreen() {
   const navigation = useNavigation();
   const isWeb = Platform.OS === "web";
-  const maxWidthStyle: ViewStyle | undefined = isWeb ? { maxWidth: 920, alignSelf: "center", width: "100%" } : undefined;
+  const maxWidthStyle: ViewStyle | undefined = isWeb
+    ? { maxWidth: 920, alignSelf: "center", width: "100%" }
+    : undefined;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -31,28 +35,54 @@ export function CreateServiceScreen() {
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const [alert, setAlert] = useState<{ title?: string; msg: string } | null>(
+    null
+  );
+
+  function showAlert(msg: string, title?: string) {
+    setAlert({ title, msg });
+  }
+
   async function handleCreate() {
     if (saving) return;
 
     const n = name.trim();
-    if (!n) return Alert.alert("Nombre requerido", "Escribe el título del servicio.");
+    if (!n) {
+      showAlert("Escribe el título del servicio.", "Nombre requerido");
+      return;
+    }
 
-    // Validaciones numéricas (solo si hay texto)
     const dMin = toNumberOrNull(durationMin);
     const dMax = toNumberOrNull(durationMax);
     const p = toNumberOrNull(price);
 
-    if (durationMin.trim() && dMin === null) return Alert.alert("Duración min inválida");
-    if (durationMax.trim() && dMax === null) return Alert.alert("Duración max inválida");
-    if (price.trim() && p === null) return Alert.alert("Precio inválido");
+    if (durationMin.trim() && dMin === null) {
+      showAlert("Duración mínima inválida");
+      return;
+    }
+
+    if (durationMax.trim() && dMax === null) {
+      showAlert("Duración máxima inválida");
+      return;
+    }
+
+    if (price.trim() && p === null) {
+      showAlert("Precio inválido");
+      return;
+    }
 
     if (dMin !== null && dMax !== null && dMax < dMin) {
-      return Alert.alert("Duración inválida", "La duración máxima no puede ser menor a la mínima.");
+      showAlert(
+        "La duración máxima no puede ser menor a la mínima.",
+        "Duración inválida"
+      );
+      return;
     }
 
     setSaving(true);
     try {
       const heroUrl = heroImageUrl.trim() || null;
+
       await addDoc(collection(db, "services"), {
         name: n,
         description: description.trim() || null,
@@ -61,21 +91,27 @@ export function CreateServiceScreen() {
         durationMax: dMax,
         price: p,
         heroImageUrl: heroUrl,
-        imageUrl: heroUrl, // backward compatibility
+        imageUrl: heroUrl,
         galleryUrls: (galleryUrls ?? []).filter(Boolean),
         active: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      Alert.alert("Listo", "Servicio creado exitosamente.");
-      navigation.goBack();
+      showAlert("Servicio creado exitosamente.", "Listo");
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "No se pudo crear el servicio.");
+      showAlert(e?.message ?? "No se pudo crear el servicio.", "Error");
     } finally {
       setSaving(false);
     }
   }
+
+  const handleAlertClose = () => {
+    setAlert(null);
+    if (alert?.title === "Listo") {
+      navigation.goBack();
+    }
+  };
 
   return (
     <Screen scroll contentContainerStyle={[styles.page, maxWidthStyle]}>
@@ -84,12 +120,19 @@ export function CreateServiceScreen() {
       <View style={styles.heroCard}>
         <Text style={styles.heroTitle}>Nuevo servicio</Text>
         <Text style={styles.heroSub}>
-          Completa la información del servicio. Precio/tiempo se pueden omitir si es por valoración.
+          Completa la información del servicio. Precio/tiempo se pueden omitir si
+          es por valoración.
         </Text>
       </View>
 
       <View style={[styles.card, styles.soft]}>
-        <TextField label="Título" value={name} onChangeText={setName} placeholder="Ej. Limpieza facial" />
+        <TextField
+          label="Título"
+          value={name}
+          onChangeText={setName}
+          placeholder="Ej. Limpieza facial"
+        />
+
         <TextField
           label="Descripción"
           value={description}
@@ -97,12 +140,14 @@ export function CreateServiceScreen() {
           placeholder="Describe el servicio…"
           multiline
         />
+
         <TextField
           label="Categoría (opcional)"
           value={category}
           onChangeText={setCategory}
           placeholder="Ej. Faciales"
         />
+
         <TextField
           label="Imagen principal / Hero (URL)"
           value={heroImageUrl}
@@ -113,12 +158,18 @@ export function CreateServiceScreen() {
       </View>
 
       <View style={[styles.card, styles.soft]}>
-        <EditableImageUrlList value={galleryUrls} onChange={setGalleryUrls} label="Galería (URLs)" />
+        <EditableImageUrlList
+          value={galleryUrls}
+          onChange={setGalleryUrls}
+          label="Galería (URLs)"
+        />
       </View>
 
       <View style={[styles.card, styles.soft]}>
         <Text style={styles.sectionTitle}>Tiempo / Costo (opcionales)</Text>
-        <Text style={styles.hint}>Déjalos vacíos si depende de valoración.</Text>
+        <Text style={styles.hint}>
+          Déjalos vacíos si depende de valoración.
+        </Text>
 
         <View style={styles.row2}>
           <View style={{ flex: 1 }}>
@@ -130,6 +181,7 @@ export function CreateServiceScreen() {
               placeholder="60"
             />
           </View>
+
           <View style={{ flex: 1 }}>
             <TextField
               label="Duración max (min)"
@@ -141,11 +193,33 @@ export function CreateServiceScreen() {
           </View>
         </View>
 
-        <TextField label="Precio (MXN)" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="450" />
+        <TextField
+          label="Precio (MXN)"
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="numeric"
+          placeholder="450"
+        />
       </View>
 
-      <Button title={saving ? "Creando..." : "Crear servicio"} onPress={handleCreate} disabled={saving} />
-      <Button title="Cancelar" variant="secondary" onPress={() => navigation.goBack()} />
+      <Button
+        title={saving ? "Creando..." : "Crear servicio"}
+        onPress={handleCreate}
+        disabled={saving}
+      />
+
+      <Button
+        title="Cancelar"
+        variant="secondary"
+        onPress={() => navigation.goBack()}
+      />
+
+      <AppAlert
+        visible={!!alert}
+        title={alert?.title}
+        message={alert?.msg ?? ""}
+        onClose={handleAlertClose}
+      />
     </Screen>
   );
 }

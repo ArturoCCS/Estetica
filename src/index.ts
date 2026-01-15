@@ -49,7 +49,7 @@ export const notifyOnAppointmentCreate = onDocumentCreated("appointments/{id}", 
 export const notifyOnAppointmentUpdate = onDocumentUpdated("appointments/{id}", async (event) => {
   const before = event.data?.before?.data() as any;
   const after = event.data?.after?.data() as any;
-  if (!before || !after || before.status === after.status) return; // solo si cambia el estado
+  if (!before || !after || before.status === after.status) return;
 
   const expo = new Expo();
   const toUser = await getUserToken(after.userId);

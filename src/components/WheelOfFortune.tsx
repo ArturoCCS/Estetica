@@ -1,11 +1,11 @@
 import * as d3Shape from 'd3-shape';
 import React, { Component } from 'react';
 import {
-    Animated,
-    Dimensions,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Svg, { G, Path, Text as SvgText, TSpan as SvgTSpan } from 'react-native-svg';
 
@@ -158,11 +158,9 @@ export default class WheelOfFortune extends Component<Props, State> {
 
   _getWinnerIndex = () => {
     const deg = Math.abs(Math.round(this.angle % this.oneTurn));
-    // wheel turning counterclockwise
     if (this.angle < 0) {
       return Math.floor(deg / this.angleBySegment);
     }
-    // wheel turning clockwise
     return (
       (this.numberOfSegments - Math.floor(deg / this.angleBySegment)) %
       this.numberOfSegments
@@ -209,7 +207,6 @@ export default class WheelOfFortune extends Component<Props, State> {
             </SvgTSpan>
           );
         }
-        // Render reward text horizontally
         else {
           // @ts-ignore
           return (
@@ -337,7 +334,6 @@ export default class WheelOfFortune extends Component<Props, State> {
           ],
         }}>
         <Svg width={knobSize} height={triangleHeight} viewBox={`0 0 ${knobSize} ${triangleHeight}`}>
-          {/* Triángulo superior como "puntero" */}
           {/* @ts-ignore */}
           <Path
             d={`
@@ -396,9 +392,6 @@ const styles = StyleSheet.create({
   startText: {
     fontSize: 50,
     color: '#fff',
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
+    fontWeight: 'bold'
   },
 });

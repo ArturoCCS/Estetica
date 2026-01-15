@@ -40,7 +40,6 @@ export function useSettings() {
   return ctx;
 }
 
-// Hook opcional que no lanza error si no hay provider
 export function useOptionalSettings() {
   return useContext(SettingsContext);
 }

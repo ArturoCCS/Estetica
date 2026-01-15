@@ -2,12 +2,13 @@ import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { db } from "../../lib/firebase";
 import { theme } from "../../theme/theme";
+import { confirmDelete } from "../../utils/confirmDelete";
 import { GalleryForm } from "./GalleryForm";
 
 type GalleryPhoto = { id: string; imageUrl: string; };
@@ -33,12 +34,15 @@ export function GalleryAdminScreen() {
     return unsub;
   }, []);
 
-  const handleDelete = async (id: string) => {
-    Alert.alert("Eliminar", "¿Borrar foto de galería?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sí, borrar", style: "destructive", onPress: async () => await deleteDoc(doc(db, "gallery", id)) }
-    ]);
-  };
+const handleDelete = (id: string) => {
+  confirmDelete(
+    "Eliminar",
+    "¿Borrar foto de galería?",
+    async () => {
+      await deleteDoc(doc(db, "gallery", id));
+    }
+  );
+};
 
   if (editing) {
     return (
@@ -96,3 +100,4 @@ const styles = StyleSheet.create({
   text: { fontSize: 13 },
   galleryImg: { width: 64, height: 64, borderRadius: 10, backgroundColor: "#eee" }
 });
+

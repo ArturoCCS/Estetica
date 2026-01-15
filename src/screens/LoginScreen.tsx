@@ -1,55 +1,95 @@
+import { useRoute } from "@react-navigation/native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Button, Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text } from "react-native";
+
+import { AppAlert } from "../components/AppAlert";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { Screen } from "../components/Screen";
+import { TextField } from "../components/TextField";
 import { auth } from "../lib/auth";
+import { theme } from "../theme/theme";
 
 export function LoginScreen({ navigation }: any) {
+  const route = useRoute<any>();
+  const redirectTo = route.params?.redirectTo;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState<{ title?: string; msg: string } | null>(null);
+
+  function showError(msg: string, title = "Error") {
+    setAlert({ title, msg });
+  }
 
   async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert("Completa todos los campos");
-      return;
+    if (!email.trim() || !password) {
+      return showError("Ingresa tu correo y contraseña.");
     }
+
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      // Si tienes observer, aquí redirige automáticamente.
+
+      if (redirectTo) {
+        navigation.replace(redirectTo.name, redirectTo.params);
+      } else {
+        navigation.replace("Main");
+      }
     } catch (e: any) {
-      Alert.alert(
-        "Error al iniciar sesión",
-        `CODE: ${e.code}\nMSG: ${e?.message || "No se pudo iniciar sesión"}`
+      showError(
+        e?.code === "auth/invalid-credential"
+          ? "Correo o contraseña incorrectos."
+          : e?.message || "No se pudo iniciar sesión."
       );
-      console.log("Login error:", e);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 25 }}>
-      <Text style={{ fontWeight: "bold", fontSize: 20, marginBottom: 18 }}>Iniciar sesión</Text>
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-        style={{ borderBottomWidth: 1, marginBottom: 16 }}
-        keyboardType="email-address"
+    <Screen contentContainerStyle={{ justifyContent: "center", padding: 20 }}>
+      <Card style={{ gap: 14, marginTop: 50 }}>
+        <Text style={{ fontSize: 22, fontWeight: "800", color: theme.colors.text }}>
+          Iniciar sesión
+        </Text>
+
+        <TextField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TextField
+          label="Contraseña"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <Button
+          title={loading ? "Ingresando..." : "Entrar"}
+          onPress={handleLogin}
+          disabled={loading}
+        />
+
+        <Pressable onPress={() => navigation.navigate("Signup")}>
+          <Text style={{ textAlign: "center", color: theme.colors.primary }}>
+            ¿No tienes cuenta? Crear cuenta
+          </Text>
+        </Pressable>
+      </Card>
+
+      <AppAlert
+        visible={!!alert}
+        title={alert?.title}
+        message={alert?.msg ?? ""}
+        onClose={() => setAlert(null)}
       />
-      <TextInput
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={{ borderBottomWidth: 1, marginBottom: 22 }}
-      />
-      <Button title={loading ? "Entrando..." : "Entrar"} onPress={handleLogin} disabled={loading} />
-      <Pressable onPress={() => navigation.navigate("Signup")}>
-        <Text style={{ marginTop: 16, textAlign: "center", color: "blue" }}>¿No tienes cuenta? Regístrate</Text>
-      </Pressable>
-    </View>
+    </Screen>
   );
 }

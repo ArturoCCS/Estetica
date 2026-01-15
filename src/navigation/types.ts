@@ -1,12 +1,15 @@
 export type MainTabsParamList = {
-  Home: undefined;
-  Services: undefined;
-  Bookings: undefined;
-  Profile: undefined;
+  Inicio: undefined;
+  Servicios: undefined;
+  Agenda: undefined;
+  Perfil: undefined;
   Admin?: undefined;
+  Login?: undefined;
 };
 
+
 export type RootStackParamList = {
+  
   Main: { screen?: keyof MainTabsParamList };
   PromoRoulette: { promoId: string; rewards: { code: string; label: string }[] };
   Admin: undefined;
@@ -15,12 +18,17 @@ export type RootStackParamList = {
   EditService: undefined;
   PromosAdmin: undefined;
   GalleryAdmin: undefined;
-  Login: undefined;
+  Login: { redirectTo?: { name: string; params?: any } } | undefined;
   Signup: undefined;
   BookService: { serviceId?: string };
-  AdminAppointments: undefined;
-  SettingsAdmin: undefined; // agregado
+  AdminAppointments: { initialTab: string };
+  SettingsAdmin: undefined;
   ServiceDetail: { serviceId: string };
-  Notifications: undefined; // agregado
+  Notifications: undefined;
   Calendar: undefined;
+  AppointmentDetail: { appointmentId: string };
+  About: undefined;
+  PromoCoupon: { promoId: string };
+  PromoDetail: { promoId: string };
 };
+

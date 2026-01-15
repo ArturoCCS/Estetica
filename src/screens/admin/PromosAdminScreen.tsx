@@ -2,12 +2,13 @@ import { HeaderBack } from "@/src/components/HeaderBack";
 import { useNavigation } from "@react-navigation/native";
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Screen } from "../../components/Screen";
 import { db } from "../../lib/firebase";
 import { theme } from "../../theme/theme";
+import { confirmDelete } from "../../utils/confirmDelete";
 import { PromotionForm } from "./PromotionForm";
 
 type Promo = { id: string; text: string; imageUrl: string; cta?: string };
@@ -33,14 +34,16 @@ export function PromosAdminScreen() {
     return unsub;
   }, []);
 
-  const handleDelete = async (id: string) => {
-    Alert.alert("Eliminar", "¿Borrar promoción?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sí, borrar", style: "destructive", onPress: async () => await deleteDoc(doc(db, "promos", id)) }
-    ]);
+  const handleDelete = (id: string) => {
+    confirmDelete(
+      "Eliminar",
+      "¿Borrar promoción?",
+      async () => {
+        await deleteDoc(doc(db, "promos", id));
+      }
+    );
   };
 
-  // Formulario para editar o agregar
   if (editing) {
     return (
       <PromotionForm

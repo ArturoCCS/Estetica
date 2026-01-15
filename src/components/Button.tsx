@@ -5,7 +5,7 @@ import { theme } from "../theme/theme";
 type Props = {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "muted" | "danger";
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -21,15 +21,21 @@ export function Button({ title, onPress, variant = "primary", loading, disabled,
       style={[
         styles.base,
         Platform.OS === "web" && styles.baseWeb,
-        variant === "primary" ? styles.primary : styles.secondary,
+        variant === "primary" ? styles.primary : variant === "secondary" ? styles.secondary : variant === "muted" ? styles.muted : variant === "danger" ? styles.danger : {},
         isDisabled && { opacity: 0.6 },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="white" />
+        <ActivityIndicator color={variant === "muted" ? "black" : "white"} />
       ) : (
-        <Text style={[styles.text, Platform.OS === "web" && styles.textWeb]}>{title}</Text>
+        <Text style={[
+          styles.text, 
+          Platform.OS === "web" && styles.textWeb,
+          variant === "muted" && styles.textMuted
+        ]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );
@@ -49,6 +55,9 @@ const styles = StyleSheet.create({
   },
   primary: { backgroundColor: theme.colors.primary },
   secondary: { backgroundColor: "#111827" },
+  muted: { backgroundColor: "#E5E7EB" },
+  danger: { backgroundColor: "#a32c2c" },
   text: { color: "white", fontWeight: "800" },
-  textWeb: { fontSize: 14 },
+  textWeb: { fontSize: 13.5 },
+  textMuted: { color: "black" },
 });

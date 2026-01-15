@@ -1,54 +1,115 @@
 import React from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { theme } from "../theme/theme";
 
 type Props = {
   slots: string[];
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
+  value?: string;
+  disabledSlots?: Set<string>;
+  onChange: (slot: string) => void;
 };
 
-export function TimeSlotsGrid({ slots, value, onChange, disabled }: Props) {
-  if (!slots?.length) return <Text style={styles.empty}>Sin horarios disponibles</Text>;
+export function TimeSlotsGrid({
+  slots,
+  value,
+  disabledSlots,
+  onChange,
+}: Props) {
+  if (!slots || slots.length === 0) {
+    return (
+      <Text style={styles.empty}>
+        No hay horarios disponibles
+      </Text>
+    );
+  }
 
   return (
-    <FlatList
-      data={slots}
-      keyExtractor={(t) => t}
-      numColumns={4}
-      columnWrapperStyle={{ gap: 8, marginBottom: 8 }}
-      renderItem={({ item }) => {
-        const selected = item === value;
+    <View style={styles.grid}>
+      {slots.map((slot) => {
+        const disabled = disabledSlots?.has(slot) ?? false;
+        const selected = value === slot;
+
         return (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={[styles.chip, selected && styles.chipSelected, disabled && { opacity: 0.6 }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            onPress={() => !disabled && onChange(item)}
+          <Pressable
+            key={slot}
+            disabled={disabled}
+            onPress={() => {
+              if (!disabled) {
+                onChange(slot);
+              }
+            }}
+            style={({ pressed }) => [
+              styles.slot,
+              selected && styles.selected,
+              disabled && styles.disabled,
+              pressed && !disabled && styles.pressed,
+            ]}
           >
-            <Text style={[styles.label, selected && styles.labelSelected]}>{item}</Text>
-          </TouchableOpacity>
+            <Text
+              style={[
+                styles.slotText,
+                selected && styles.selectedText,
+                disabled && styles.disabledText,
+              ]}
+            >
+              {slot}
+            </Text>
+          </Pressable>
         );
-      }}
-      contentContainerStyle={{ paddingVertical: 6 }}
-    />
+      })}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    flex: 1,
-    minWidth: 60,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 8,
+  },
+  slot: {
+    minWidth: 72,
     paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
-  chipSelected: { backgroundColor: "#FA4376", borderColor: "#FA4376" },
-  label: { color: "#111", fontWeight: "600" },
-  labelSelected: { color: "#fff" },
-  empty: { color: "#888" },
+  pressed: {
+    opacity: 0.85,
+  },
+  selected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  disabled: {
+    backgroundColor: "#f1f1f1",
+    borderColor: "#ddd",
+  },
+  slotText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  selectedText: {
+    color: "#fff",
+  },
+  disabledText: {
+    color: "#999",
+    textDecorationLine: "line-through",
+  },
+  empty: {
+    marginTop: 10,
+    fontSize: 13,
+    color: "#999",
+  },
 });

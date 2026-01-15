@@ -18,5 +18,5 @@ export type GlobalSettings = {
   };
   bookingMinLeadMinutes?: number;
   bookingMaxDays?: number;
-  paymentsEnabled?: boolean; // Feature flag for payments
+  paymentsEnabled?: boolean;
 }
