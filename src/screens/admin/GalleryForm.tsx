@@ -22,7 +22,16 @@ import { db } from "../../lib/firebase";
 import { theme } from "../../theme/theme";
 
 const schema = z.object({
-  imageUrl: z.string().url("Debes poner una URL válida"),
+  imageUrl: z
+    .string()
+    .url("Debes poner una URL válida")
+    .refine(
+      (val) =>
+        val.endsWith(".jpg") ||
+        val.endsWith(".png") ||
+        val.includes("instagram.com/p/"),
+      "Debe ser una URL directa de imagen o una publicación de Instagram"
+    ),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -58,10 +67,44 @@ export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
     }
   }, [initialValues]);
 
+  async function getInstagramImageUrl(postUrl: string) {
+    try {
+      const match = postUrl.match(/\/p\/([a-zA-Z0-9_-]+)/);
+      if (!match) return null;
+
+      const shortcode = match[1];
+      const apiUrl = `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`;
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      });
+      const data = await response.json();
+
+      return data.graphql.shortcode_media.display_url;
+    } catch (err) {
+      console.error("Error obteniendo imagen de Instagram:", err);
+      return null;
+    }
+  }
+
   const onSubmit = async (values: FormValues) => {
     try {
+      let finalUrl = values.imageUrl.trim();
+
+      if (finalUrl.includes("instagram.com/p/")) {
+        const instaUrl = await getInstagramImageUrl(finalUrl);
+        if (!instaUrl) {
+          showAlert("No se pudo obtener la imagen de Instagram", "Error");
+          return;
+        }
+        finalUrl = instaUrl;
+      }
+
       const payload = {
-        imageUrl: values.imageUrl.trim(),
+        imageUrl: finalUrl,
         updatedAt: serverTimestamp(),
       };
 
@@ -100,7 +143,7 @@ export function GalleryForm({ initialValues, galleryId, onDone }: Props) {
                 label="URL de la imagen"
                 value={value}
                 onChangeText={onChange}
-                placeholder="https://ejemplo.com/gallery.jpg"
+                placeholder="https://ejemplo.com/gallery.jpg o Instagram"
                 error={formState.errors.imageUrl?.message}
                 autoCapitalize="none"
               />
