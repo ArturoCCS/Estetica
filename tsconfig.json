@@ -1,6 +1,6 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "module": "es2015",
     "moduleResolution": "bundler",
     "strict": true,
     "paths": {
@@ -12,7 +12,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "app/src/screens/admin/AdminScreen.txs"  ]
+    "app/src/screens/admin/AdminScreen.txs",
+    "app.config.js"
+  ],
+  "extends": "expo/tsconfig.base"
 }
