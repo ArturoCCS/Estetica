@@ -35,10 +35,10 @@ export function AboutScreen() {
   const [loading, setLoading] = useState(true);
 
   const defaultData: AboutData = {
-    studioName: "Key Durán Beauty Studio",
-    ownerName: "Key Durán",
+    studioName: "Key Duran Beauty Studio",
+    ownerName: "Key Duran",
     description:
-      "En Key Durán Beauty Studio nos especializamos en maquillaje profesional, diseño de pestañas y cuidado estético, con un enfoque en realzar la belleza natural de cada persona a través de técnicas personalizadas, detalle y armonía. Nuestro trabajo se distingue por la calidad, el buen gusto y el respeto por los rasgos individuales, creando resultados elegantes que proyectan seguridad y presencia.",
+      "En Key Duran Beauty Studio nos especializamos en maquillaje profesional, diseño de pestañas y cuidado estético, con un enfoque en realzar la belleza natural de cada persona a través de técnicas personalizadas, detalle y armonía. Nuestro trabajo se distingue por la calidad, el buen gusto y el respeto por los rasgos individuales, creando resultados elegantes que proyectan seguridad y presencia.",
     mission:
       "Creemos firmemente que la belleza no se trata de transformar, sino de potenciar lo que ya eres. Por ello, cada servicio está diseñado para que te veas impecable, te sientas cómoda y camines con mayor confianza.",
     values: [
