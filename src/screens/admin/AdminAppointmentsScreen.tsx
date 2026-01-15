@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#dadadc",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 5,
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#dadadc",
   },
   emptyTitle: {
     fontSize: 18,
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1.5,
-    borderColor: "#E5E7EB",
+    borderColor: "#dadadc",
     borderRadius: theme.radius.md,
     padding: 12,
     fontSize: 15,

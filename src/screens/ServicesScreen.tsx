@@ -142,7 +142,7 @@ const ss = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: "#fafafa",
-    paddingHorizontal: 15, 
+    paddingHorizontal: 20, 
     paddingTop: 30,
     paddingBottom: 30,
   },
@@ -196,6 +196,8 @@ const ss = StyleSheet.create({
   card: { 
     backgroundColor: "#fff",
     borderRadius: 20,
+    borderColor: "#dadadc",
+    borderWidth: 1,
     overflow: "hidden",
     ...Platform.select({
       ios: {

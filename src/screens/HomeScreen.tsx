@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: "500",
     fontSize: 14,
-    color: "#a3a9a7",
+    color: "#717473",
     lineHeight: 20,
     maxWidth: 420,
   },
@@ -1152,6 +1152,8 @@ const styles = StyleSheet.create({
   serviceCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
+    borderColor: "#dadadc",
+    borderWidth: 1,
     marginVertical: Platform.OS === "web" ? 10: 5,
     marginHorizontal: Platform.OS === "web" ? 2: 0,
     overflow: "hidden",

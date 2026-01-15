@@ -14,11 +14,11 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { AppAlert } from "../components/AppAlert";
 import { Button } from "../components/Button";
@@ -153,161 +153,171 @@ export function BookingsScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Mis citas</Text>
-        <Text style={styles.subtitle}>
-          Gestiona tus reservaciones y revisa tu agenda
-        </Text>
-      </View>
+  const renderCard = (item: Appointment) => {
+    const isAdjusted = item.status === "adjusted";
+    const isCancelled = item.status === "cancelled";
+    const dateToShow = item.finalStartAt ?? item.requestedStartAt;
 
-      <Button
-        title="Ver mi agenda"
-        onPress={() => navigation.navigate("Calendar")}
-        style={styles.calendarBtn}
-      />
+    return (
+      <Card style={styles.card}>
+        <Pressable
+          onPress={() =>
+            navigation.navigate("AppointmentDetail", {
+              appointmentId: item.id,
+            })
+          }
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Text style={styles.serviceName}>{item.serviceName}</Text>
+              {isAdjusted && (
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusBadgeText}>Ajustada</Text>
+                </View>
+              )}
+              {isCancelled && (
+                <View style={[styles.statusBadge, styles.statusBadgeCancelled]}>
+                  <Text style={styles.statusBadgeText}>Cancelada</Text>
+                </View>
+              )}
+            </View>
+          </View>
 
-      <View style={styles.tabs}>
-        {[
-          ["requested", "Solicitudes", counts.requested],
-          ["adjusted", "Cambios", counts.adjusted],
-          ["confirmed", "Confirmadas", counts.confirmed],
-          ["cancelled", "Canceladas", counts.cancelled],
-        ].map(([key, label, count]) => (
-          <Pressable
-            key={key}
-            onPress={() => setTab(key as Tab)}
-            style={[styles.tab, tab === key && styles.tabActive]}
-          >
-            <Text style={[styles.tabLabel, tab === key && styles.tabLabelActive]}>
-              {label}
-            </Text>
-            {Number(count) > 0 && (
-              <View style={[styles.badge, tab === key && styles.badgeActive]}>
-                <Text
-                  style={[
-                    styles.badgeText,
-                    tab === key && styles.badgeTextActive,
-                  ]}
-                >
-                  {count}
+          <View style={styles.cardBody}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Fecha y hora</Text>
+              <Text style={styles.infoValue}>{formatDate(dateToShow)}</Text>
+            </View>
+
+            {item.durationMinutes && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Duración</Text>
+                <Text style={styles.infoValue}>
+                  {item.durationMinutes} min
                 </Text>
               </View>
             )}
-          </Pressable>
-        ))}
-      </View>
 
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Cargando citas...</Text>
-        </View>
-      ) : data.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <View style={styles.emptyIcon}>
-            <View style={styles.emptyIconInner} />
+            {item.price && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Precio</Text>
+                <Text style={styles.infoValue}>${item.price}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.emptyTitle}>No hay citas</Text>
-          <Text style={styles.emptySubtitle}>
-            {tab === "requested"
-              ? "No tienes solicitudes pendientes"
-              : tab === "adjusted"
-              ? "No hay citas con cambios"
-              : tab === "confirmed"
-              ? "No tienes citas confirmadas"
-              : "No hay citas canceladas por el administrador"}
+
+          <View style={styles.cardFooter}>
+            <Text style={styles.detailLink}>Ver detalles completos</Text>
+          </View>
+        </Pressable>
+
+        {!isCancelled && <View style={styles.divider} />}
+
+        {item.status !== "cancelled" ? (
+          <Pressable
+            style={styles.cancelBtn}
+            onPress={() => setAlert({ type: "cancel", apt: item })}
+          >
+            <Text style={styles.cancelBtnText}>Cancelar cita</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            style={styles.deleteBtn}
+            onPress={() => setAlert({ type: "delete", apt: item })}
+          >
+            <Text style={styles.deleteBtnText}>
+              Eliminar definitivamente
+            </Text>
+          </Pressable>
+        )}
+      </Card>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+     
+        <View style={styles.header}>
+          <Text style={styles.title}>Mis citas</Text>
+          <Text style={styles.subtitle}>
+            Gestiona tus reservaciones y revisa tu agenda
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={data}
-          keyExtractor={(i) => i.id}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const isAdjusted = item.status === "adjusted";
-            const isCancelled = item.status === "cancelled";
-            const dateToShow = item.finalStartAt ?? item.requestedStartAt;
 
-            return (
-              <Card style={styles.card}>
-                <Pressable
-                  onPress={() =>
-                    navigation.navigate("AppointmentDetail", {
-                      appointmentId: item.id,
-                    })
-                  }
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardTitleRow}>
-                      <Text style={styles.serviceName}>{item.serviceName}</Text>
-                      {isAdjusted && (
-                        <View style={styles.statusBadge}>
-                          <Text style={styles.statusBadgeText}>Ajustada</Text>
-                        </View>
-                      )}
-                      {isCancelled && (
-                        <View style={[styles.statusBadge, styles.statusBadgeCancelled]}>
-                          <Text style={styles.statusBadgeText}>Cancelada</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.cardBody}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Fecha y hora</Text>
-                      <Text style={styles.infoValue}>{formatDate(dateToShow)}</Text>
-                    </View>
-
-                    {item.durationMinutes && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Duración</Text>
-                        <Text style={styles.infoValue}>
-                          {item.durationMinutes} min
-                        </Text>
-                      </View>
-                    )}
-
-                    {item.price && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Precio</Text>
-                        <Text style={styles.infoValue}>${item.price}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.detailLink}>Ver detalles completos</Text>
-                  </View>
-                </Pressable>
-
-                {!isCancelled && <View style={styles.divider} />}
-
-                {item.status !== "cancelled" ? (
-                  <Pressable
-                    style={styles.cancelBtn}
-                    onPress={() => setAlert({ type: "cancel", apt: item })}
-                  >
-                    <Text style={styles.cancelBtnText}>Cancelar cita</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    style={styles.deleteBtn}
-                    onPress={() => setAlert({ type: "delete", apt: item })}
-                  >
-                    <Text style={styles.deleteBtnText}>
-                      Eliminar definitivamente
-                    </Text>
-                  </Pressable>
-                )}
-              </Card>
-            );
-          }}
+        <Button
+          title="Ver mi agenda"
+          onPress={() => navigation.navigate("Calendar")}
+          style={styles.calendarBtn}
         />
-      )}
+
+        <View style={styles.tabs}>
+          {[
+            ["requested", "Solicitudes", counts.requested],
+            ["adjusted", "Cambios", counts.adjusted],
+            ["confirmed", "Confirmadas", counts.confirmed],
+            ["cancelled", "Canceladas", counts.cancelled],
+          ].map(([key, label, count]) => (
+            <Pressable
+              key={key}
+              onPress={() => setTab(key as Tab)}
+              style={[styles.tab, tab === key && styles.tabActive]}
+            >
+              <Text style={[styles.tabLabel, tab === key && styles.tabLabelActive]}>
+                {label}
+              </Text>
+              {Number(count) > 0 && (
+                <View style={[styles.badge, tab === key && styles.badgeActive]}>
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      tab === key && styles.badgeTextActive,
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          ))}
+        </View>
+
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>Cargando citas...</Text>
+          </View>
+        ) : data.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <View style={styles.emptyIcon}>
+              <View style={styles.emptyIconInner} />
+            </View>
+            <Text style={styles.emptyTitle}>No hay citas</Text>
+            <Text style={styles.emptySubtitle}>
+              {tab === "requested"
+                ? "No tienes solicitudes pendientes"
+                : tab === "adjusted"
+                ? "No hay citas con cambios"
+                : tab === "confirmed"
+                ? "No tienes citas confirmadas"
+                : "No hay citas canceladas por el administrador"}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.listContainer}>
+            {data.map((item) => (
+              <View key={item.id}>
+                {renderCard(item)}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       {alert && (
         <AppAlert
@@ -332,6 +342,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.bg,
   },
+  scrollView: {
+    flex: 1,
+    marginBottom: 50,
+    marginRight: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
+  },
   header: {
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
@@ -355,8 +374,8 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: "row",
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xs,
     gap: 6,
     marginBottom: theme.spacing.lg,
   },
@@ -366,13 +385,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
     borderRadius: theme.radius.md,
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "transparent",
-    minHeight: 60,
+    minHeight: 50,
   },
   tabActive: {
     backgroundColor: "#fff",
@@ -390,7 +409,7 @@ const styles = StyleSheet.create({
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#dadadc",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 6,
@@ -401,7 +420,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B7280",
+    color: "#2a2d33",
   },
   badgeTextActive: {
     color: "#fff",
@@ -411,6 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 10,
+    minHeight: 200,
   },
   loadingText: {
     marginTop: 12,
@@ -430,7 +450,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#dadadc",
   },
   emptyTitle: {
     fontSize: 18,
@@ -444,9 +464,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-  list: {
+  listContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 40,
   },
   card: {
     marginBottom: 12,

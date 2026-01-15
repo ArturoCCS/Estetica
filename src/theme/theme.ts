@@ -4,7 +4,7 @@ export const theme = {
     card: "#FFFFFF",
     text: "#111827",
     muted: "#6B7280",
-    border: "#E5E7EB",
+    border: "#dadadc",
     primary: "#A66170",
     primaryDark: "#9D174D",
     danger: "#B91C1C"

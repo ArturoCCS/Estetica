@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
   primary: { backgroundColor: theme.colors.primary },
   secondary: { backgroundColor: "#111827" },
-  muted: { backgroundColor: "#E5E7EB" },
+  muted: { backgroundColor: "#dadadc" },
   danger: { backgroundColor: "#a32c2c" },
   text: { color: "white", fontWeight: "800" },
   textWeb: { fontSize: 13.5 },

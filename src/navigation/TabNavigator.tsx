@@ -50,7 +50,14 @@ export function TabNavigator() {
     >
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Servicios" component={ServicesScreen} />
-      <Tab.Screen name="Agenda" component={BookingsScreen} />
+      
+      {user && (
+        <Tab.Screen
+          name="Agenda"
+          component={BookingsScreen}
+          options={{ title: "Agenda" }}
+        />
+      )}
 
       {!user ? (
         <Tab.Screen

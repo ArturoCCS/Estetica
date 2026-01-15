@@ -1,6 +1,6 @@
 import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "../components/Button";
 import { db } from "../lib/firebase";
 import { useAuth } from "../providers/AuthProvider";
@@ -90,7 +90,11 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
@@ -180,7 +184,7 @@ export function ProfileScreen() {
             </>
           )}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -189,11 +193,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAFA",
+    paddingHorizontal: 16,
   },
-  content: {
+  scrollView: {
     flex: 1,
+    
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
+    paddingBottom: 130,
   },
   header: {
     alignItems: "center",
@@ -245,7 +255,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#1F2937",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#dadadc",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

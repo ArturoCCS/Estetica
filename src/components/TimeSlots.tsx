@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: "#E5E7EB"
+    borderColor: "#dadadc"
   },
   chipSelected: { backgroundColor: "#FA4376", borderColor: "#FA4376" },
   label: { color: "#111", fontWeight: "600" },
