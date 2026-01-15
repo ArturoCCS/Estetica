@@ -35,6 +35,28 @@ function toNumberOrNull(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+async function getInstagramImageUrl(postUrl: string): Promise<string | null> {
+  try {
+    const match = postUrl.match(/\/p\/([a-zA-Z0-9_-]+)/);
+    if (!match) return null;
+
+    const shortcode = match[1];
+    const apiUrl = `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`;
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+    const data = await response.json();
+    return data.graphql.shortcode_media.display_url;
+  } catch (err) {
+    console.error("Error obteniendo imagen de Instagram:", err);
+    return null;
+  }
+}
+
 export function ServiceForm({
   serviceId,
   initialValues,
@@ -46,13 +68,10 @@ export function ServiceForm({
     [isWeb]
   );
 
-  const [alert, setAlert] = useState<{
-    title?: string;
-    msg: string;
-  } | null>(null);
-
-  const showAlert = (msg: string, title?: string) =>
-    setAlert({ msg, title });
+  const [alert, setAlert] = useState<{ title?: string; msg: string } | null>(
+    null
+  );
+  const showAlert = (msg: string, title?: string) => setAlert({ msg, title });
 
   const [name, setName] = useState(initialValues.name ?? "");
   const [description, setDescription] = useState(initialValues.description ?? "");
@@ -64,7 +83,6 @@ export function ServiceForm({
   const [galleryUrls, setGalleryUrls] = useState<string[]>(
     initialValues.galleryUrls ?? []
   );
-
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -113,7 +131,28 @@ export function ServiceForm({
 
     setSaving(true);
     try {
-      const heroUrl = heroImageUrl.trim() || null;
+      let finalHeroUrl = heroImageUrl.trim();
+      if (finalHeroUrl.includes("instagram.com/p/")) {
+        const instaUrl = await getInstagramImageUrl(finalHeroUrl);
+        if (!instaUrl) {
+          showAlert("No se pudo obtener la imagen principal de Instagram", "Error");
+          setSaving(false);
+          return;
+        }
+        finalHeroUrl = instaUrl;
+      }
+
+      const finalGalleryUrls: string[] = [];
+      for (const url of galleryUrls) {
+        const trimmed = url.trim();
+        if (!trimmed) continue;
+        if (trimmed.includes("instagram.com/p/")) {
+          const instaUrl = await getInstagramImageUrl(trimmed);
+          if (instaUrl) finalGalleryUrls.push(instaUrl);
+        } else {
+          finalGalleryUrls.push(trimmed);
+        }
+      }
 
       await updateDoc(doc(db, "services", serviceId), {
         name: n,
@@ -122,9 +161,9 @@ export function ServiceForm({
         durationMin: dMin,
         durationMax: dMax,
         price: p,
-        heroImageUrl: heroUrl,
-        imageUrl: heroUrl,
-        galleryUrls: (galleryUrls ?? []).filter(Boolean),
+        heroImageUrl: finalHeroUrl,
+        imageUrl: finalHeroUrl,
+        galleryUrls: finalGalleryUrls,
         updatedAt: serverTimestamp(),
       });
 
@@ -163,7 +202,7 @@ export function ServiceForm({
             onChangeText={setCategory}
           />
           <TextField
-            label="Imagen principal / Hero (URL)"
+            label="Imagen principal / Hero (URL o Instagram)"
             value={heroImageUrl}
             onChangeText={setHeroImageUrl}
             autoCapitalize="none"
@@ -174,7 +213,7 @@ export function ServiceForm({
           <EditableImageUrlList
             value={galleryUrls}
             onChange={setGalleryUrls}
-            label="Galería (URLs)"
+            label="Galería (URLs o Instagram)"
           />
         </View>
 
@@ -210,7 +249,7 @@ export function ServiceForm({
           onPress={handleSave}
           disabled={saving}
         />
-        <Button title="Cancelar" variant="secondary" onPress={() => { onDone?.(); }} />
+        <Button title="Cancelar" variant="secondary" onPress={() => onDone?.()} />
       </Screen>
 
       <AppAlert
