@@ -24,15 +24,15 @@ import { theme } from "../../theme/theme";
 const schema = z.object({
   imageUrl: z
     .string()
+    .trim()
     .url("Debes poner una URL válida")
     .refine(
       (val) =>
-        val.endsWith(".jpg") ||
-        val.endsWith(".png") ||
-        val.includes("instagram.com/p/"),
-      "Debe ser una URL directa de imagen o una publicación de Instagram"
+        val.startsWith("http://") || val.startsWith("https://"),
+      "Debe ser una URL válida"
     ),
 });
+
 
 type FormValues = z.infer<typeof schema>;
 

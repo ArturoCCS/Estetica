@@ -187,9 +187,34 @@ function getGreetingByHour(date = new Date()) {
 
 function getBeautySlogan(date = new Date()) {
   const h = date.getHours();
-  if (h >= 5 && h < 12) return "Hoy tu belleza empieza con un buen día.";
-  if (h >= 12 && h < 20) return "Un toque de brillo y lista para todo.";
-  return "Un momento para ti. Un look para brillar.";
+
+  const morning = [
+    "Hoy tu belleza empieza con un buen día",
+    "Despierta, sonríe y deja que tu belleza haga el resto.",
+    "Un nuevo día, una nueva razón para brillar.",
+    "Tu rutina, tu momento, tu belleza.",
+  ];
+
+  const afternoon = [
+    "Un toque de brillo y lista para todo",
+    "Porque tu estilo no toma descansos.",
+    "Un detalle puede cambiarlo todo.",
+    "La belleza también se siente.",
+  ];
+
+  const night = [
+    "Un momento para ti. Un look para brillar",
+    "Relájate, respira y consiéntete.",
+    "La noche también es tuya para deslumbrar.",
+    "Cierra el día sintiéndote increíble.",
+  ];
+
+  const pick = (arr: string[]) =>
+    arr[Math.floor(Math.random() * arr.length)];
+
+  if (h >= 5 && h < 12) return pick(morning);
+  if (h >= 12 && h < 20) return pick(afternoon);
+  return pick(night);
 }
 
 export function HomeScreen() {

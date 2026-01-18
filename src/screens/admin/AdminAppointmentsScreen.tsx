@@ -73,18 +73,33 @@ function hasConflict(
     return start < aEnd && end > aStart;
   });
 }
+function isAppointmentExpired(a: Appointment): boolean {
+  const now = new Date();
+
+  const startISO = a.finalStartAt ?? a.requestedStartAt;
+  if (!startISO) return false;
+
+  const start = new Date(startISO);
+  const duration = a.durationMinutes ?? 30;
+  const end = new Date(start.getTime() + duration * 60000);
+
+  return end < now;
+}
+
 
 export function AdminAppointmentsScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [users, setUsers] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewTab>("requested");
+
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [duration, setDuration] = useState("30");
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
+
   const [alert, setAlert] = useState<AlertPayload>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -93,24 +108,32 @@ export function AdminAppointmentsScreen() {
       collection(db, "appointments"),
       orderBy("requestedStartAt", "desc")
     );
+
     return onSnapshot(q, async (snap) => {
-      const now = new Date();
       const rows: Appointment[] = [];
+
       for (const d of snap.docs) {
         const apt = { id: d.id, ...d.data() } as Appointment;
-        const raw = apt.finalStartAt ?? apt.requestedStartAt;
-        const aptDate = raw ? new Date(raw) : null;
 
-        if (apt.status === "cancelled" && aptDate && aptDate < now) {
-          await deleteDoc(doc(db, "appointments", apt.id));
+        
+        if (isAppointmentExpired(apt) && apt.status !== "expired") {
+          await updateDoc(doc(db, "appointments", apt.id), {
+            status: "expired",
+            expiredAt: serverTimestamp(),
+          });
           continue;
         }
+
+        if (apt.status === "expired") continue;
+
         rows.push(apt);
       }
+
       setAppointments(rows);
       setLoading(false);
     });
   }, []);
+
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -162,8 +185,7 @@ export function AdminAppointmentsScreen() {
     const base = new Date(a.finalStartAt ?? a.requestedStartAt);
     setDate(base.toISOString().slice(0, 10));
     setStartTime(base.toTimeString().slice(0, 5));
-    
-    setDuration(a.durationMinutes ? String(a.durationMinutes) : ""); 
+    setDuration(a.durationMinutes ? String(a.durationMinutes) : "");
     setPrice(a.price ? String(a.price) : "");
     setNotes(a.adminNotes ?? "");
     setEditing(a);
@@ -174,67 +196,81 @@ export function AdminAppointmentsScreen() {
     if (!editing) return;
 
     const durNum = Number(duration);
-    if (!duration || isNaN(durNum) || durNum <= 0) {
-      setAlert({ type: "error", message: "Debes asignar una duración válida antes de confirmar." });
+    if (!durNum || durNum <= 0) {
+      setAlert({ type: "error", message: "Duración inválida." });
       return;
     }
 
-    if (!date || !startTime) {
-      setAlert({ type: "error", message: "Debes seleccionar fecha y hora." });
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = calcEnd(date, startTime, durNum);
+
+    const originalStart = new Date(
+      editing.finalStartAt ?? editing.requestedStartAt
+    );
+
+    const onlyDurationChanged =
+      originalStart.getTime() === start.getTime() &&
+      !price &&
+      !notes &&
+      editing.status === "requested";
+
+    if (onlyDurationChanged) {
+      await confirmQuick(editing);
       return;
     }
 
     try {
       setProcessing(true);
-      const start = new Date(`${date}T${startTime}:00`);
-      const end = new Date(start.getTime() + durNum * 60000);
 
-      const overlap = hasConflict(start, end, appointments, editing.id);
-      if (overlap) {
-        setAlert({ type: "error", message: "¡Conflicto de horario! Ya hay una cita en este rango." });
+      if (hasConflict(start, end, appointments, editing.id)) {
+        setAlert({
+          type: "error",
+          message: "La nueva hora se empalma con otra cita.",
+        });
         return;
       }
-
-      const isInitialRequest = editing.status === "requested";
-      const finalStatus = isInitialRequest ? "confirmed" : "adjusted";
 
       await updateDoc(doc(db, "appointments", editing.id), {
         finalStartAt: start.toISOString(),
         durationMinutes: durNum,
         price: price ? Number(price) : null,
         adminNotes: notes,
-        status: finalStatus,
+        status: "adjusted",
         updatedAt: serverTimestamp(),
       });
 
       await createNotification({
         recipientId: editing.userId,
-        title: isInitialRequest ? "Cita confirmada" : "Cita modificada",
-        message: isInitialRequest 
-          ? `Tu cita para ${editing.serviceName} ha sido confirmada.`
-          : `Se han realizado cambios en tu cita de ${editing.serviceName}.`,
+        title: "Cambios propuestos en tu cita",
+        message: `El administrador propuso ajustes para tu cita de ${editing.serviceName}.`,
         read: false,
         route: {
           screen: "Agenda",
-          params: { tab: isInitialRequest ? "confirmed" : "pending" },
+          params: { tab: "pending" },
         },
         appointmentId: editing.id,
         createdAt: serverTimestamp(),
-        type: "appointment_update"
+        type: "appointment_adjusted",
       });
 
       setEditing(null);
-    } catch (error) {
-      console.error(error);
-      setAlert({ type: "error", message: "No se pudo procesar la cita." });
+    } catch (e) {
+      console.error(e);
+      setAlert({
+        type: "error",
+        message: "No se pudieron guardar los cambios.",
+      });
     } finally {
       setProcessing(false);
     }
   };
 
+
+
   const cancelByAdmin = async (a: Appointment) => {
     setProcessing(true);
     try {
+      
       await updateDoc(doc(db, "appointments", a.id), {
         status: "cancelled",
         cancelledBy: "admin",
@@ -276,14 +312,37 @@ export function AdminAppointmentsScreen() {
     }
   };
 
-  const confirmDirectly = async (a: Appointment) => {
-    setProcessing(true);
+  const confirmQuick = async (a: Appointment) => {
+    const durNum = Number(duration);
+    if (!durNum || durNum <= 0) {
+      setAlert({
+        type: "error",
+        message: "Debes indicar la duración para confirmar la cita.",
+      });
+      return;
+    }
+
+    const start = new Date(a.requestedStartAt);
+    const end = new Date(start.getTime() + durNum * 60000);
+
+    if (hasConflict(start, end, appointments, a.id)) {
+      setAlert({
+        type: "error",
+        message: "La cita se empalma con otra ya confirmada.",
+      });
+      return;
+    }
+
     try {
+      setProcessing(true);
+
       await updateDoc(doc(db, "appointments", a.id), {
-        finalStartAt: a.requestedStartAt, 
+        durationMinutes: durNum,
+        finalStartAt: a.requestedStartAt,
         status: "confirmed",
         updatedAt: serverTimestamp(),
       });
+      
 
       await createNotification({
         recipientId: a.userId,
@@ -296,15 +355,18 @@ export function AdminAppointmentsScreen() {
         },
         appointmentId: a.id,
         createdAt: serverTimestamp(),
-        type: ""
+        type: "appointment_confirmed",
       });
-    } catch (error) {
-      console.error(error);
-      setAlert({ type: "error", message: "Error al confirmar la cita" });
+
+      setEditing(null);
+    } catch (e) {
+      setAlert({ type: "error", message: "No se pudo confirmar la cita." });
     } finally {
       setProcessing(false);
     }
   };
+
+
 
   const handleConfirmPress = (item: Appointment) => {
     openEdit(item);
@@ -448,7 +510,7 @@ export function AdminAppointmentsScreen() {
 
                 {!isCancelled ? (
                   <View style={styles.actionsRow}>
-                    {(view === "requested" || view === "pending") && (
+                    {view === "requested" && (
                       <Pressable
                         style={[styles.confirmBtn, { flex: 1.2 }]}
                         onPress={() => handleConfirmPress(item)}

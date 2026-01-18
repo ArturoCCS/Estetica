@@ -237,7 +237,6 @@ export function PromotionForm({
       <ScrollView contentContainerStyle={{ padding: theme.spacing.lg, gap: theme.spacing.md }}>
         {showHeader && <HeaderBack />}
 
-        {/* Campos del formulario */}
         <Card style={{ gap: theme.spacing.sm }}>
           <Text>Texto de la promoción</Text>
           <TextInput
@@ -260,8 +259,6 @@ export function PromotionForm({
           {errors.imageUrl && <Text style={{ color: "red" }}>{errors.imageUrl.message}</Text>}
         </Card>
 
-        {/* resto de campos: CTA, tipo, cupon, ruleta, audiencia, etc */}
-        {/* ...puedes dejar el resto igual, no cambian */}
         <Card>
           <Button
             title={buttonTitle ?? (promoId ? "Guardar cambios" : "Crear promoción")}

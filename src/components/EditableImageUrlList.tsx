@@ -1,7 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { AppAlert } from "./AppAlert";
 type Props = {
   label?: string;
   value: string[];
@@ -16,35 +22,40 @@ export function EditableImageUrlList({
   placeholder = "https://...",
 }: Props) {
   const [draft, setDraft] = useState("");
+  const [confirmIndex, setConfirmIndex] = useState<number | null>(null);
 
   const items = useMemo(() => value.filter(Boolean), [value]);
 
   function add() {
     const url = draft.trim();
     if (!url) return;
+
     if (!/^https?:\/\//i.test(url)) {
-      Alert.alert("URL inválida", "Debe iniciar con http:// o https://");
+      setDraft("");
       return;
     }
-    onChange([...items, url]);
+
+    onChange([...value, url]);
     setDraft("");
   }
 
-  function removeAt(i: number) {
-    Alert.alert("Eliminar", "¿Quitar esta imagen de la galería?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: () => onChange(items.filter((_, idx) => idx !== i)) },
-    ]);
+  function requestRemove(i: number) {
+    setConfirmIndex(i);
   }
 
+  function confirmRemove() {
+    if (confirmIndex === null) return;
+
+    onChange(value.filter((_, idx) => idx !== confirmIndex));
+    setConfirmIndex(null);
+  }
 
   function move(i: number, dir: -1 | 1) {
     const j = i + dir;
-    if (j < 0 || j >= items.length) return;
-    const next = [...items];
-    const tmp = next[i];
-    next[i] = next[j];
-    next[j] = tmp;
+    if (j < 0 || j >= value.length) return;
+
+    const next = [...value];
+    [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   }
 
@@ -74,24 +85,60 @@ export function EditableImageUrlList({
           {items.map((url, i) => (
             <View key={`${url}-${i}`} style={s.item}>
               <View style={{ flex: 1 }}>
-                <Text style={s.url} numberOfLines={2}>{url}</Text>
+                <Text style={s.url} numberOfLines={2}>
+                  {url}
+                </Text>
               </View>
 
               <View style={s.actions}>
-                <Pressable onPress={() => move(i, -1)} style={s.iconBtn} disabled={i === 0}>
-                  <Ionicons name="chevron-up" size={18} color={i === 0 ? "#c6c6c6" : "#333"} />
+                <Pressable
+                  onPress={() => move(i, -1)}
+                  style={s.iconBtn}
+                  disabled={i === 0}
+                >
+                  <Ionicons
+                    name="chevron-up"
+                    size={18}
+                    color={i === 0 ? "#c6c6c6" : "#333"}
+                  />
                 </Pressable>
-                <Pressable onPress={() => move(i, 1)} style={s.iconBtn} disabled={i === items.length - 1}>
-                  <Ionicons name="chevron-down" size={18} color={i === items.length - 1 ? "#c6c6c6" : "#333"} />
+
+                <Pressable
+                  onPress={() => move(i, 1)}
+                  style={s.iconBtn}
+                  disabled={i === items.length - 1}
+                >
+                  <Ionicons
+                    name="chevron-down"
+                    size={18}
+                    color={i === items.length - 1 ? "#c6c6c6" : "#333"}
+                  />
                 </Pressable>
-                <Pressable onPress={() => removeAt(i)} style={[s.iconBtn, { backgroundColor: "#fff1f2" }]}>
-                  <Ionicons name="trash-outline" size={18} color="#e11d48" />
+
+                <Pressable
+                  onPress={() => requestRemove(i)}
+                  style={[s.iconBtn, { backgroundColor: "#fff1f2" }]}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color="#e11d48"
+                  />
                 </Pressable>
               </View>
             </View>
           ))}
         </View>
       )}
+      <AppAlert
+        visible={confirmIndex !== null}
+        title="Eliminar imagen"
+        message="¿Quitar esta imagen de la galería?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onCancel={() => setConfirmIndex(null)}
+        onConfirm={confirmRemove}
+      />
     </View>
   );
 }
